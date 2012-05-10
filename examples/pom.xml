@@ -42,6 +42,11 @@
       <artifactId>hama-graph</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.mahout</groupId>
+      <artifactId>mahout-math</artifactId>
+      <version>0.6</version>
+    </dependency>
   </dependencies>
   <build>
     <finalName>hama-examples-${project.version}</finalName>
