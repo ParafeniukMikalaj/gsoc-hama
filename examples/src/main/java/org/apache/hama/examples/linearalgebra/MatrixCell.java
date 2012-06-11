@@ -7,8 +7,7 @@ package org.apache.hama.examples.linearalgebra;
 public class MatrixCell {
   
   private double value;
-  public int row;
-  public int column;
+  private int row, column;
 
   public MatrixCell(int row, int column, double value) {
     this.row = row;

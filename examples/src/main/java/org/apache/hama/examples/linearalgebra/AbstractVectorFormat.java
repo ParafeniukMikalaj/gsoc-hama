@@ -12,7 +12,7 @@ import java.util.Iterator;
  */
 public abstract class AbstractVectorFormat implements VectorFormat{
 
-  private int dimension;
+  protected int dimension;
 
   @Override
   public int getDimension() {

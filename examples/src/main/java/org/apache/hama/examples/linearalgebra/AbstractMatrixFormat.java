@@ -11,7 +11,7 @@ import java.util.Iterator;
  */
 public abstract class AbstractMatrixFormat implements MatrixFormat {
 
-  private int rows, columns;
+  protected int rows, columns;
 
   @Override
   public int getRows() {

@@ -6,7 +6,7 @@ package org.apache.hama.examples.linearalgebra;
  */
 public class VectorCell {
   private double value;
-  public int position;
+  private int position;
 
   public VectorCell(int position, double value) {
     this.position = position;
