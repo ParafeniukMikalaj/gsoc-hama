@@ -6,21 +6,12 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * base implementation of MatrixFormat, which provides
- * such features as reading and writing matrices.
+ * base implementation of MatrixFormat, which implements
+ * Writable interface.
  */
 public abstract class AbstractMatrixFormat implements MatrixFormat {
 
   private int rows, columns;
-
-  @Override
-  public abstract Iterator<MatrixCell> getDataIterator();
-
-  @Override
-  public abstract void setMatrixCell(MatrixCell cell);
-
-  @Override
-  public abstract void init();
 
   @Override
   public int getRows() {
@@ -43,21 +34,12 @@ public abstract class AbstractMatrixFormat implements MatrixFormat {
   }
 
   @Override
-  public abstract int getItemsCount();
-
-  @Override
   public double getSparsity() {
     return ((double) getItemsCount()) / (rows * columns);
   }
 
   @Override
-  public abstract double getCell(int row, int column);
-
-  @Override
-  public abstract boolean hasCell(int row, int column);
-
-  @Override
-  public void writeMatrix(DataOutput out) throws IOException {
+  public void write(DataOutput out) throws IOException {
     boolean writeSparse = 3 * getSparsity() < 1;
     out.writeBoolean(writeSparse);
     out.writeInt(getItemsCount());
@@ -79,7 +61,7 @@ public abstract class AbstractMatrixFormat implements MatrixFormat {
   }
 
   @Override
-  public void readMatrix(DataInput in) throws IOException {
+  public void readFields(DataInput in) throws IOException {
     boolean readSparse = in.readBoolean();
     int itemsCount = in.readInt();
     int rows = in.readInt();

@@ -5,18 +5,14 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
 
+/**
+ * Base implementation of Vector format,
+ * which implements Writable interface and
+ * adds some features.
+ */
 public abstract class AbstractVectorFormat implements VectorFormat{
 
   private int dimension;
-  
-  @Override
-  public abstract Iterator<VectorCell> getDataIterator();
-
-  @Override
-  public abstract void setVectorCell(VectorCell cell);
-
-  @Override
-  public abstract void init();
 
   @Override
   public int getDimension() {
@@ -29,21 +25,12 @@ public abstract class AbstractVectorFormat implements VectorFormat{
   }
 
   @Override
-  public abstract double getCell(int position);
-
-  @Override
-  public abstract boolean hasCell(int position);
-
-  @Override
-  public abstract int getItemsCount();
-
-  @Override
   public double getSparsity() {
     return ((double)getItemsCount())/dimension;
   }
 
   @Override
-  public void writeVector(DataOutput out) throws IOException {
+  public void write(DataOutput out) throws IOException {
     boolean writeSparse = 3 * getSparsity() < 1;
     out.writeBoolean(writeSparse);
     out.writeInt(getItemsCount());
@@ -62,7 +49,7 @@ public abstract class AbstractVectorFormat implements VectorFormat{
   }
 
   @Override
-  public void readVector(DataInput in) throws IOException {
+  public void readFields(DataInput in) throws IOException {
     boolean readSparse = in.readBoolean();
     int itemsCount = in.readInt();
     int dimension = in.readInt();

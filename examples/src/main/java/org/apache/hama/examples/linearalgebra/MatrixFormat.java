@@ -1,20 +1,19 @@
 package org.apache.hama.examples.linearalgebra;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
 import java.util.Iterator;
+
+import org.apache.hadoop.io.Writable;
 
 /**
  * Interface for every new supported matrix data format.
  */
-public interface MatrixFormat {
+public interface MatrixFormat extends Writable{
 
-  public abstract Iterator<MatrixCell> getDataIterator();
+  public Iterator<MatrixCell> getDataIterator();
 
-  public abstract void setMatrixCell(MatrixCell cell);
+  public void setMatrixCell(MatrixCell cell);
 
-  public abstract void init();
+  public void init();
 
   public int getRows();
 
@@ -31,9 +30,5 @@ public interface MatrixFormat {
   public abstract int getItemsCount();
 
   public double getSparsity();
-  
-  public void writeMatrix(DataOutput out) throws IOException;
-  
-  public void readMatrix(DataInput in) throws IOException;
 
 }
