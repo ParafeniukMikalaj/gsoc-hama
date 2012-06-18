@@ -8,29 +8,40 @@ import java.util.Iterator;
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 
 /**
- * Base implementation of Vector format,
- * which implements Writable interface and
- * adds some features.
+ * Base implementation of Vector format, which implements {@link Writable}
+ * interface and adds some userful features like counting vector sparsity.
  */
-public abstract class AbstractVectorFormat implements VectorFormat{
+public abstract class AbstractVectorFormat implements VectorFormat {
 
   protected int dimension;
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getDimension() {
     return dimension;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setDimension(int dimension) {
-    this.dimension = dimension;    
+    this.dimension = dimension;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public double getSparsity() {
-    return ((double)getItemsCount())/dimension;
+    return ((double) getItemsCount()) / dimension;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void write(DataOutput out) throws IOException {
     boolean writeSparse = 3 * getSparsity() < 1;
@@ -47,9 +58,12 @@ public abstract class AbstractVectorFormat implements VectorFormat{
     } else {
       for (int i = 0; i < getDimension(); i++)
         out.writeDouble(getCell(i));
-    }    
+    }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void readFields(DataInput in) throws IOException {
     boolean readSparse = in.readBoolean();
@@ -66,13 +80,13 @@ public abstract class AbstractVectorFormat implements VectorFormat{
       }
     } else {
       for (int i = 0; i < dimension; i++) {
-          double cellValue = in.readDouble();
-          if (cellValue != 0) {
-            VectorCell cell = new VectorCell(i, cellValue);
-            setVectorCell(cell);
-          }
+        double cellValue = in.readDouble();
+        if (cellValue != 0) {
+          VectorCell cell = new VectorCell(i, cellValue);
+          setVectorCell(cell);
+        }
       }
     }
   }
-  
+
 }

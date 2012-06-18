@@ -5,11 +5,18 @@ import java.util.NoSuchElementException;
 
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 
+/**
+ * This class contains implementation of Dense Matrix Format. Contains
+ * two-dimensioal array of double.
+ */
 public class DenseMatrix extends AbstractMatrixFormat {
 
   private int itemsCount;
   private double[][] data;
 
+  /**
+   * Custom cell iterator for this format.
+   */
   private class DenseMatrixIterator implements Iterator<MatrixCell> {
 
     private int i, j;
@@ -46,11 +53,17 @@ public class DenseMatrix extends AbstractMatrixFormat {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Iterator<MatrixCell> getDataIterator() {
     return new DenseMatrixIterator();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setMatrixCell(MatrixCell cell) {
     if (!hasCell(cell.getRow(), cell.getColumn()) && cell.getValue() != 0)
@@ -58,17 +71,26 @@ public class DenseMatrix extends AbstractMatrixFormat {
     data[cell.getRow()][cell.getColumn()] = cell.getValue();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() {
     data = new double[rows][columns];
     itemsCount = 0;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public double getCell(int row, int column) {
     return data[row][column];
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean hasCell(int row, int column) {
     if (data[row][column] != 0)
@@ -76,6 +98,9 @@ public class DenseMatrix extends AbstractMatrixFormat {
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getItemsCount() {
     return itemsCount;

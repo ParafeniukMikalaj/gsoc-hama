@@ -8,21 +8,23 @@ import org.apache.hama.HamaConfiguration;
 import org.apache.hama.examples.linearalgebra.formats.VectorFormat;
 
 /**
- * This class would be used for any conversions
- * between different vector formats. If user want's
- * to add custom converter for Format1 to Format2
- * he must register key-value pair in Hama's configuration
- * in such format:
- * key: linearalgebra.vector.converter.Format1-Format2
- * value: full class name of converter.
+ * This class would be used for any conversions between different vector
+ * formats. If user want's to add custom converter for Format1 to Format2 he
+ * must register key-value pair in Hama's configuration in such format: key:
+ * linearalgebra.vector.converter.Format1-Format2 value: full class name of
+ * converter.
  */
-public class HamaVectorConverter implements VectorConverter<VectorFormat, VectorFormat> {
+public class HamaVectorConverter implements
+    VectorConverter<VectorFormat, VectorFormat> {
 
   private HamaConfiguration conf;
   private VectorConverter<VectorFormat, VectorFormat> defaultConverter;
   private HashMap<String, VectorConverter<VectorFormat, VectorFormat>> searchedConverters;
   private static Log LOG = LogFactory.getLog(HamaVectorConverter.class);
 
+  /**
+   * {@inheritDoc}
+   */
   @SuppressWarnings("unchecked")
   public HamaVectorConverter() {
     conf = new HamaConfiguration();
@@ -86,4 +88,3 @@ public class HamaVectorConverter implements VectorConverter<VectorFormat, Vector
   }
 
 }
-

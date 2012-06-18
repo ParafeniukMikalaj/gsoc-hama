@@ -8,16 +8,25 @@ import java.util.NoSuchElementException;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 
-public class CCSMatrix extends AbstractMatrixFormat implements ColumnWiseMatrixFormat{
-  
+/**
+ * This class contains implementation of Compressed Column Storage(CCS)
+ * implementation of MatrixFormat. Web page with explanation of format will be
+ * created later.
+ */
+public class CCSMatrix extends AbstractMatrixFormat implements
+    ColumnWiseMatrixFormat {
+
   private List<Double> values;
   private List<Integer> indeces;
   private List<Integer> start;
-  
+
+  /**
+   * Custom cell iterator for this format.
+   */
   private class CCSMatrixIterator implements Iterator<MatrixCell> {
-    
+
     private int index;
-    
+
     public CCSMatrixIterator() {
       index = 0;
     }
@@ -25,7 +34,7 @@ public class CCSMatrix extends AbstractMatrixFormat implements ColumnWiseMatrixF
     @Override
     public boolean hasNext() {
       if (getItemsCount() == 0 || index > values.size())
-        return false;      
+        return false;
       return true;
     }
 
@@ -44,31 +53,37 @@ public class CCSMatrix extends AbstractMatrixFormat implements ColumnWiseMatrixF
     @Override
     public void remove() {
       throw new UnsupportedOperationException(
-          "CCSMatrixIterator can't modify underlying collection");      
+          "CCSMatrixIterator can't modify underlying collection");
     }
-    
-    private int getColumn(int index){
+
+    private int getColumn(int index) {
       int column = 0;
-      for (;column < start.size() - 1; column++)
-        if (index >= start.get(column) && index < start.get(column+1))
+      for (; column < start.size() - 1; column++)
+        if (index >= start.get(column) && index < start.get(column + 1))
           break;
       return column;
     }
-    
+
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Iterator<MatrixCell> getDataIterator() {
     return new CCSMatrixIterator();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setMatrixCell(MatrixCell cell) {
     int row = cell.getRow();
     int column = cell.getColumn();
     double value = cell.getValue();
     int startIndex = start.get(column);
-    int endIndex = start.get(column+1);
+    int endIndex = start.get(column + 1);
     int index = startIndex;
     for (int i = startIndex; i < endIndex; i++)
       if (indeces.get(i) >= row) {
@@ -83,49 +98,64 @@ public class CCSMatrix extends AbstractMatrixFormat implements ColumnWiseMatrixF
       start.set(i, start.get(i) + 1);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() {
     values = new ArrayList<Double>();
     indeces = new ArrayList<Integer>();
-    start = new ArrayList<Integer>(columns + 1); 
+    start = new ArrayList<Integer>(columns + 1);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public double getCell(int row, int column) {
     int startIndex = start.get(column);
-    int endIndex = start.get(column+1);
+    int endIndex = start.get(column + 1);
     List<Integer> rowIndeces = indeces.subList(startIndex, endIndex);
     int position = rowIndeces.indexOf(row);
     if (position != -1)
       return 0;
     position += startIndex;
-    return values.get(position);  
+    return values.get(position);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean hasCell(int row, int column) {
     int startIndex = start.get(column);
-    int endIndex = start.get(column+1);
+    int endIndex = start.get(column + 1);
     List<Integer> columnIndeces = indeces.subList(startIndex, endIndex);
     int position = columnIndeces.indexOf(row);
     if (position != -1)
       return true;
-    return false;    
+    return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getItemsCount() {
     return values.size();
   }
-  
+
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public SparseVector getColumn(int column) {
     SparseVector result = new SparseVector();
     result.setDimension(columns);
     result.init();
     int startIndex = start.get(column);
-    int endIndex = start.get(column+1);
-    for (int i = startIndex; i < endIndex; i++) 
+    int endIndex = start.get(column + 1);
+    for (int i = startIndex; i < endIndex; i++)
       result.setVectorCell(new VectorCell(indeces.get(i), values.get(i)));
     return result;
   }

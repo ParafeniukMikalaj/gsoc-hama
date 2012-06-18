@@ -7,11 +7,18 @@ import java.util.NoSuchElementException;
 
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 
+/**
+ * This class contains implementation of Sparse Vector Format. Contains
+ * list of values and indeces.
+ */
 public class SparseVector extends AbstractVectorFormat {
 
   private List<Double> values;
   private List<Integer> indeces;
 
+  /**
+   * Custom cell iterator for this format.
+   */
   private class SparseVectorIterator implements Iterator<VectorCell> {
 
     private int index;
@@ -46,11 +53,17 @@ public class SparseVector extends AbstractVectorFormat {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Iterator<VectorCell> getDataIterator() {
     return new SparseVectorIterator();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setVectorCell(VectorCell cell) {
     int position = cell.getPosition();
@@ -64,12 +77,18 @@ public class SparseVector extends AbstractVectorFormat {
     values.add(index, value);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() {
     values = new ArrayList<Double>();
     indeces = new ArrayList<Integer>();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public double getCell(int position) {
     int index = indeces.indexOf(position);
@@ -78,6 +97,9 @@ public class SparseVector extends AbstractVectorFormat {
     return 0;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean hasCell(int position) {
     if (indeces.indexOf(position) != -1)
@@ -85,6 +107,9 @@ public class SparseVector extends AbstractVectorFormat {
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getItemsCount() {
     return values.size();

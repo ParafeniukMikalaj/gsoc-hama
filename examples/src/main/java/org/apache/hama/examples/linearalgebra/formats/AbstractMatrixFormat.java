@@ -8,38 +8,57 @@ import java.util.Iterator;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 
 /**
- * base implementation of MatrixFormat, which implements
- * Writable interface.
+ * Base implementation of {@link MatrixFormat }, which implements
+ * {@link Writable} interface. Also contains set of useful common methods like
+ * counting sparsity.
  */
 public abstract class AbstractMatrixFormat implements MatrixFormat {
 
   protected int rows, columns;
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getRows() {
     return rows;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getColumns() {
     return columns;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setRows(int rows) {
     this.rows = rows;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setColumns(int columns) {
     this.columns = columns;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public double getSparsity() {
     return ((double) getItemsCount()) / (rows * columns);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void write(DataOutput out) throws IOException {
     boolean writeSparse = 3 * getSparsity() < 1;

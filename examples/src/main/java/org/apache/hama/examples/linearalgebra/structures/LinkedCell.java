@@ -1,5 +1,9 @@
 package org.apache.hama.examples.linearalgebra.structures;
 
+/**
+ * Class represends Matrix cell linked in four directions:
+ * right, left, top, bottom. Used in {@link DoubleLinkeMatrix}.
+ */
 public class LinkedCell {
   
   private MatrixCell cell;

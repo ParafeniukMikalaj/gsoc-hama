@@ -9,6 +9,10 @@ import java.util.TreeMap;
 
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 
+/**
+ * This class contains implementation of Jagged Diagonal Storage (JDS) Matrix
+ * Format. Web page with explanation of format will be created later.
+ */
 public class JDSMatrix extends AbstractMatrixFormat {
 
   private HashMap<Integer, List<Double>> values;
@@ -23,6 +27,9 @@ public class JDSMatrix extends AbstractMatrixFormat {
     private List<Integer> currentIndeces;
     private List<Double> currentValues;
 
+    /**
+     * Custom cell iterator for this format.
+     */
     public JDSMatrixIterator() {
       indeces.keySet().toArray(rowIndeces);
       rowIndex = columnIndex = 0;
@@ -65,11 +72,17 @@ public class JDSMatrix extends AbstractMatrixFormat {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Iterator<MatrixCell> getDataIterator() {
     return new JDSMatrixIterator();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setMatrixCell(MatrixCell cell) {
     int row = cell.getRow();
@@ -92,6 +105,9 @@ public class JDSMatrix extends AbstractMatrixFormat {
     rowIndeces.add(column);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() {
     values = new HashMap<Integer, List<Double>>();
@@ -100,6 +116,9 @@ public class JDSMatrix extends AbstractMatrixFormat {
     itemsCount = 0;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public double getCell(int row, int column) {
     if (!values.containsKey(row))
@@ -112,6 +131,9 @@ public class JDSMatrix extends AbstractMatrixFormat {
     return rowValues.get(index);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean hasCell(int row, int column) {
     if (!values.containsKey(row))
@@ -123,6 +145,9 @@ public class JDSMatrix extends AbstractMatrixFormat {
     return true;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getItemsCount() {
     return itemsCount;
@@ -141,6 +166,9 @@ public class JDSMatrix extends AbstractMatrixFormat {
     }
   }
 
+  /**
+   * this method gets diagonal specified by diagonalNumber.
+   */
   public List<MatrixCell> getDiagonal(int diagonalNumber) {
     List<MatrixCell> result = new ArrayList<MatrixCell>();
     for (int i = 0; i < indeces.size(); i++) {

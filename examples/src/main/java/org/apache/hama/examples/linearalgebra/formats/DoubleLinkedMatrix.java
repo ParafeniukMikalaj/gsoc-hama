@@ -8,7 +8,9 @@ import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 
 /**
- * Will be implemented in few days.
+ * This class contains implementation of Double Linked Matrix Format. Web page
+ * with explanation of format will be created later. Items presented with
+ * {@link LinkedCell}. Can be easily iterated from left and top edge.
  */
 public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
     ColumnWiseMatrixFormat, RowWiseMatrixFormat {
@@ -17,6 +19,9 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
   private LinkedCell leftStart[];
   private LinkedCell topStart[];
 
+  /**
+   * Custom cell iterator for this format.
+   */
   private class DoubleLinkedMatrixIterator implements Iterator<MatrixCell> {
 
     private int currentRow;
@@ -26,8 +31,8 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
       currentRow = 0;
       nextRow();
     }
-    
-    private void nextRow(){
+
+    private void nextRow() {
       while (currentRow < rows || leftStart[currentRow] == null)
         currentRow++;
     }
@@ -44,11 +49,11 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
       if (!hasNext())
         throw new NoSuchElementException(
             "DoubleLinkedMatrixIterator has no more elements to iterate");
-      if(currentCell == null)
+      if (currentCell == null)
         currentCell = leftStart[currentRow];
       MatrixCell result = currentCell.getCell();
       currentCell = currentCell.getRight();
-      if(currentCell == null) {
+      if (currentCell == null) {
         currentRow++;
         nextRow();
       }
@@ -63,11 +68,17 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Iterator<MatrixCell> getDataIterator() {
     return new DoubleLinkedMatrixIterator();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void setMatrixCell(MatrixCell cell) {
 
@@ -125,6 +136,9 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() {
     leftStart = new LinkedCell[rows];
@@ -132,6 +146,9 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
     itemsCount = 0;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public double getCell(int row, int column) {
     if (leftStart[row] == null)
@@ -145,6 +162,9 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
     return 0;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean hasCell(int row, int column) {
     if (leftStart[row] == null)
@@ -158,11 +178,17 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getItemsCount() {
     return itemsCount;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public SparseVector getRow(int row) {
     SparseVector result = new SparseVector();
@@ -180,6 +206,9 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
     return result;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public SparseVector getColumn(int column) {
     SparseVector result = new SparseVector();

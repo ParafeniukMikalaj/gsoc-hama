@@ -6,15 +6,15 @@ import org.apache.hama.examples.linearalgebra.formats.VectorFormat;
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 
 /**
- * This class implements converter for vector formats.
- * It works with any format which extends VectorFormat
- * and not exploits internal data structures.
+ * This class implements converter for vector formats. It works with any format
+ * which extends VectorFormat and not exploits internal data structures. It only
+ * uses iterator from first format to fill the second one.
  */
 public class DefaultVectorConverter<F extends VectorFormat, T extends VectorFormat>
     implements VectorConverter<F, T> {
 
   /**
-   * s and f must be not null to avoid code related to reflection
+   * {@inheritDoc} s and f must be not null to avoid code related to reflection
    */
   @Override
   public void convert(F fromFormat, T toFormat) {

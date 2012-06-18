@@ -8,15 +8,14 @@ import org.apache.hama.HamaConfiguration;
 import org.apache.hama.examples.linearalgebra.formats.MatrixFormat;
 
 /**
- * This class would be used for any conversions
- * between different matrix formats. If user want's
- * to add custom converter for Format1 to Format2
- * he must register key-value pair in Hama's configuration
- * in such format:
- * key: linearalgebra.matrix.converter.Format1-Format2
- * value: full class name of converter.
+ * This class would be used for any conversions between different matrix
+ * formats. If user want's to add custom converter for Format1 to Format2 he
+ * must register key-value pair in Hama's configuration in such format: key:
+ * linearalgebra.matrix.converter.Format1-Format2 value: full class name of
+ * converter.
  */
-public class HamaMatrixConverter implements MatrixConverter<MatrixFormat, MatrixFormat> {
+public class HamaMatrixConverter implements
+    MatrixConverter<MatrixFormat, MatrixFormat> {
 
   private HamaConfiguration conf;
   private MatrixConverter<MatrixFormat, MatrixFormat> defaultConverter;
@@ -44,6 +43,9 @@ public class HamaMatrixConverter implements MatrixConverter<MatrixFormat, Matrix
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @SuppressWarnings("unchecked")
   @Override
   public void convert(MatrixFormat f, MatrixFormat t) {
