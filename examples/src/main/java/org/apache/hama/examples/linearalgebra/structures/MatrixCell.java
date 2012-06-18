@@ -26,5 +26,17 @@ public class MatrixCell {
   public int getColumn() {
     return column;
   }
+
+  public void setValue(double value) {
+    this.value = value;
+  }
+
+  public void setRow(int row) {
+    this.row = row;
+  }
+
+  public void setColumn(int column) {
+    this.column = column;
+  }
   
 }
