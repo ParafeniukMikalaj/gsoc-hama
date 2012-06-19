@@ -15,6 +15,14 @@ public abstract class AbstractVectorFormat implements VectorFormat {
 
   protected int dimension;
 
+  public AbstractVectorFormat(){
+  }
+  
+  public AbstractVectorFormat(int dimension) {
+    this.dimension = dimension;
+    init();
+  }
+  
   /**
    * {@inheritDoc}
    */

@@ -70,7 +70,7 @@ public class DenseMatrix extends AbstractMatrixFormat {
       itemsCount++;
     data[cell.getRow()][cell.getColumn()] = cell.getValue();
   }
-
+  
   /**
    * {@inheritDoc}
    */
@@ -106,4 +106,27 @@ public class DenseMatrix extends AbstractMatrixFormat {
     return itemsCount;
   }
 
+  /**
+   * This method is needed for test purposes.
+   */
+  public double[][] getData() {
+    return data.clone();
+  }
+
+  @Override
+  public boolean equals(Object other){
+    if (other instanceof DenseMatrix) {
+      DenseMatrix otherMatrix = (DenseMatrix) other;
+      if (rows != otherMatrix.getRows() || columns != otherMatrix.getColumns())
+        return false;
+      double[][] otherData = otherMatrix.getData();
+      for (int i = 0; i < rows; i++)
+        for (int j = 0; j < columns; j++)
+          if (otherData[i][j] != data[i][j])
+            return false;
+      return true;
+    } else {
+      return false;
+    }
+  }
 }

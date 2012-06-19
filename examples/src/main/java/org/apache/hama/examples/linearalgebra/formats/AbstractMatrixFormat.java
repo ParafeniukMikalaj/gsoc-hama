@@ -16,6 +16,16 @@ public abstract class AbstractMatrixFormat implements MatrixFormat {
 
   protected int rows, columns;
 
+  public AbstractMatrixFormat(){
+    
+  }
+  
+  public AbstractMatrixFormat(int rows, int columns) {
+    this.rows = rows;
+    this.columns = columns;
+    init();
+  }
+  
   /**
    * {@inheritDoc}
    */
