@@ -2,7 +2,7 @@ package org.apache.hama.examples.linearalgebra.converters;
 
 import java.util.Iterator;
 
-import org.apache.hama.examples.linearalgebra.formats.MatrixFormat;
+import org.apache.hama.examples.linearalgebra.formats.Matrix;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 
 /**
@@ -10,7 +10,7 @@ import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
  * which extends MatrixFormat and not exploits internal data structures. It only
  * uses iterator from first format to fill second format.
  */
-public class DefaultMatrixConverter<F extends MatrixFormat, T extends MatrixFormat>
+public class DefaultMatrixConverter<F extends Matrix, T extends Matrix>
     implements MatrixConverter<F, T> {
 
   /**

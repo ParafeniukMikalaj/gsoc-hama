@@ -2,7 +2,7 @@ package org.apache.hama.examples.linearalgebra.converters;
 
 import java.util.Iterator;
 
-import org.apache.hama.examples.linearalgebra.formats.VectorFormat;
+import org.apache.hama.examples.linearalgebra.formats.Vector;
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 
 /**
@@ -10,7 +10,7 @@ import org.apache.hama.examples.linearalgebra.structures.VectorCell;
  * which extends VectorFormat and not exploits internal data structures. It only
  * uses iterator from first format to fill the second one.
  */
-public class DefaultVectorConverter<F extends VectorFormat, T extends VectorFormat>
+public class DefaultVectorConverter<F extends Vector, T extends Vector>
     implements VectorConverter<F, T> {
 
   /**

@@ -27,12 +27,12 @@ import org.apache.hama.bsp.TextOutputFormat;
 import org.apache.hama.bsp.messages.IntegerMessage;
 import org.apache.hama.bsp.sync.SyncException;
 import org.apache.hama.examples.PiEstimator.MyEstimator;
-import org.apache.hama.examples.linearalgebra.Mapper;
-import org.apache.hama.examples.linearalgebra.formats.CCSMatrix;
+import org.apache.hama.examples.linearalgebra.formats.CRSMatrix;
 import org.apache.hama.examples.linearalgebra.formats.DenseMatrix;
-import org.apache.hama.examples.linearalgebra.formats.MatrixFormat;
+import org.apache.hama.examples.linearalgebra.formats.Matrix;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 import org.apache.mahout.math.map.OpenIntDoubleHashMap;
+
 /**
  * This class can generate random matrix. It uses {@link MyGenerator}. You can
  * specify different options in command line. {@link parseArgs} for more info.
@@ -123,6 +123,7 @@ public class RandomMatrixGenerator {
                 "The format of requested bsp tasks is int. Can not parse value: "
                     + value);
           }
+          continue;
         }
 
         if (option.equals("-r")) {
@@ -138,6 +139,7 @@ public class RandomMatrixGenerator {
                 "The format of matrix rows is int. Can not parse value: "
                     + value);
           }
+          continue;
         }
 
         if (option.equals("-c")) {
@@ -147,12 +149,13 @@ public class RandomMatrixGenerator {
               throw new IllegalArgumentException(
                   "The number of matrix columns can't be negative. Actual value: "
                       + String.valueOf(columns));
-            RandomMatrixGenerator.setRows(columns);
+            RandomMatrixGenerator.setColumns(columns);
           } catch (NumberFormatException e) {
             throw new IllegalArgumentException(
                 "The format of matrix columns is int. Can not parse value: "
                     + value);
           }
+          continue;
         }
 
         if (option.equals("-s")) {
@@ -168,7 +171,10 @@ public class RandomMatrixGenerator {
                 "The format of sparsity is float. Can not parse value: "
                     + value);
           }
+          continue;
         }
+
+        throw new IllegalArgumentException("Unknown option: " + option + value);
 
       }
     } catch (Exception e) {
@@ -187,23 +193,26 @@ public class RandomMatrixGenerator {
    * was made to achieve at least linear performance in case of high sparsity.
    */
   public static class MyGenerator extends
-      BSP<NullWritable, NullWritable, Text, DoubleWritable, IntegerMessage> implements Mapper{
+      BSP<NullWritable, NullWritable, NullWritable, NullWritable, IntegerMessage>
+       {
     public static final Log LOG = LogFactory.getLog(MyEstimator.class);
 
     // String which identifies master task
     private String masterTask;
     // Some shared fields
-    private static MatrixFormat matrixFormat;
+
+    private static MatrixCell result[] = null;
+    private static Matrix matrixFormat;
     private static float neededSparsity;
     private static int remainder, quotient, neededItemsCount;
     private static int peerCount = 1;
     // This array is used to store final output
     private static Random rand;
-    
-    private MatrixFormat createMatrixFormat() {
-      MatrixFormat result;
-      if (neededSparsity > 0.5) 
-        result = new CCSMatrix();
+
+    private Matrix createMatrixFormat() {
+      Matrix result;
+      if (neededSparsity < 0.5)
+        result = new CRSMatrix();
       else
         result = new DenseMatrix();
       return result;
@@ -211,12 +220,12 @@ public class RandomMatrixGenerator {
 
     @Override
     public void setup(
-        BSPPeer<NullWritable, NullWritable, Text, DoubleWritable, IntegerMessage> peer)
+        BSPPeer<NullWritable, NullWritable, NullWritable, NullWritable, IntegerMessage> peer)
         throws IOException {
       neededSparsity = getSparsity();
       int rows = getRows();
       int columns = getColumns();
-      matrixFormat = createMatrixFormat();      
+      matrixFormat = createMatrixFormat();
       matrixFormat.setRows(rows);
       matrixFormat.setColumns(columns);
       matrixFormat.init();
@@ -228,20 +237,24 @@ public class RandomMatrixGenerator {
       quotient = totalNumber / peerCount;
       neededItemsCount = (int) (totalNumber * neededSparsity);
     }
-    
+
     /**
      * Converts logical one-dimension index to local peer index.
      */
-    @Override
-    public int toGlobal(int peerNumber, int localIndex) {
-      return localIndex * peerCount + peerNumber;
+    public int toGlobal(int localIndex, int peerNumber) {
+      int offset = 0;
+      if (peerNumber < remainder)
+        offset = (quotient + 1) * peerNumber;
+      else
+        offset = (quotient + 1) * remainder + quotient
+            * (peerNumber - remainder);
+      return localIndex + offset;
     }
 
     /**
      * Converts local for peer one-dimension index to logical index.
      */
-    @Override
-    public int toLocal(int peerNumber, int globalIndex) {
+    public int toLocal(int globalIndex, int peerNumber) {
       return globalIndex / peerCount;
     }
 
@@ -256,12 +269,11 @@ public class RandomMatrixGenerator {
      */
     @Override
     public void bsp(
-        BSPPeer<NullWritable, NullWritable, Text, DoubleWritable, IntegerMessage> peer)
+        BSPPeer<NullWritable, NullWritable, NullWritable, NullWritable, IntegerMessage> peer)
         throws IOException, SyncException, InterruptedException {
       int rows = matrixFormat.getRows();
       int columns = matrixFormat.getColumns();
-      MatrixCell result[] = null;
-      MatrixFormat localMatrix = createMatrixFormat();
+      Matrix localMatrix = createMatrixFormat();
       List<String> peerNamesList = Arrays.asList(peer.getAllPeerNames());
       int localIndex, logicalIndex, row, column, limit;
       double value;
@@ -271,6 +283,9 @@ public class RandomMatrixGenerator {
       limit = quotient;
       if (peerNumber < remainder)
         limit++;
+      localMatrix.setColumns(limit);
+      localMatrix.setRows(1);
+      localMatrix.init();
       // Generation of matrix items
       if (neededSparsity < 0.5) {
         // Algorithm for sparse matrices
@@ -282,8 +297,8 @@ public class RandomMatrixGenerator {
           localIndex = (int) (rand.nextDouble() * limit);
           logicalIndex = toGlobal(localIndex, peerNumber);
           if (!indexes.containsKey(logicalIndex)) {
-            row = logicalIndex / rows;
-            column = logicalIndex % columns;
+            row = 0;
+            column = localIndex;
             value = rand.nextDouble();
             MatrixCell cell = new MatrixCell(row, column, value);
             localMatrix.setMatrixCell(cell);
@@ -294,10 +309,8 @@ public class RandomMatrixGenerator {
         // Algorithm for dense matrices
         for (int i = 0; i < limit; i++)
           if (rand.nextDouble() < neededSparsity) {
-            localIndex = i;
-            logicalIndex = toGlobal(localIndex, peerNumber);
-            row = logicalIndex / rows;
-            column = logicalIndex % columns;
+            row = 0;
+            column = i;
             value = rand.nextDouble();
             MatrixCell cell = new MatrixCell(row, column, value);
             localMatrix.setMatrixCell(cell);
@@ -319,7 +332,7 @@ public class RandomMatrixGenerator {
           offset += recieverCount;
           generatedCount = offset;
         }
-        result = new MatrixCell[offset];
+        result = new MatrixCell[offset + 1];
       }
       peer.sync();
       // Superstep 3
@@ -328,10 +341,16 @@ public class RandomMatrixGenerator {
       if ((received = peer.getCurrentMessage()) != null) {
         if (received.getTag().equals(masterTask)) {
           int offset = received.getData();
-          int i  = 0;
+          int i = 0;
           Iterator<MatrixCell> cellIterator = localMatrix.getDataIterator();
-          while (cellIterator.hasNext()){
-            result[offset + i] = cellIterator.next();
+          while (cellIterator.hasNext()) {
+            MatrixCell localCell = cellIterator.next();
+            localIndex = localCell.getColumn();
+            logicalIndex = toGlobal(localIndex, peerNumber);
+            row = logicalIndex / rows;
+            column = logicalIndex % columns;
+            MatrixCell logicalCell = new MatrixCell(row, column, localCell.getValue());
+            result[offset + i] = logicalCell;
             i++;
           }
         }
@@ -341,26 +360,30 @@ public class RandomMatrixGenerator {
         for (int i = 0; i < generatedCount; i++)
           matrixFormat.setMatrixCell(result[i]);
       }
-      
+
     }
-    
-    public static MatrixFormat getResult(){
+
+    public static Matrix getResult() {
       return matrixFormat;
     }
 
   }
 
+  public static Matrix getResult(){
+    return MyGenerator.getResult();
+  }
+  
   /**
    * This method copies output from System.out to tmp file from configuration
    */
   static void printOutput(HamaConfiguration conf) throws IOException {
-    //TODO print some additional info
+    // TODO print some additional info
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] files = fs.listStatus(TMP_OUTPUT);
     for (int i = 0; i < files.length; i++) {
       if (files[i].getLen() > 0) {
         FSDataOutputStream out = fs.create(files[i].getPath());
-        MatrixFormat result = MyGenerator.getResult();
+        Matrix result = MyGenerator.getResult();
         result.write(out);
         break;
       }

@@ -9,7 +9,7 @@ import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
  * This class contains implementation of Dense Matrix Format. Contains
  * two-dimensioal array of double.
  */
-public class DenseMatrix extends AbstractMatrixFormat {
+public class DenseMatrix extends AbstractMatrix {
 
   private int itemsCount;
   private double[][] data;
@@ -19,15 +19,16 @@ public class DenseMatrix extends AbstractMatrixFormat {
    */
   private class DenseMatrixIterator implements Iterator<MatrixCell> {
 
-    private int i, j;
+    private int i, j, oneDimensionIndex;
 
     public DenseMatrixIterator() {
-      i = j = 0;
+      i = j = oneDimensionIndex = 0;
+      nextNotZero();
     }
 
     @Override
     public boolean hasNext() {
-      if (i * columns + j < rows * columns)
+      if (oneDimensionIndex < rows * columns)
         return true;
       return false;
     }
@@ -37,11 +38,11 @@ public class DenseMatrix extends AbstractMatrixFormat {
       if (!hasNext())
         throw new NoSuchElementException(
             "DenseMatrixIterator has no more elements to iterate");
-      MatrixCell current = new MatrixCell(i, j, data[i][j]);
-      int oneDimensionIndex = i * columns + j;
-      oneDimensionIndex++;
       i = oneDimensionIndex / columns;
       j = oneDimensionIndex % columns;
+      MatrixCell current = new MatrixCell(i, j, data[i][j]);
+      oneDimensionIndex++;
+      nextNotZero();
       return current;
     }
 
@@ -50,7 +51,25 @@ public class DenseMatrix extends AbstractMatrixFormat {
       throw new UnsupportedOperationException(
           "DenseMatrixIterator can't modify underlying collection");
     }
+    
+    private void nextNotZero(){
+      while (oneDimensionIndex < rows * columns){
+        i = oneDimensionIndex / columns;
+        j = oneDimensionIndex % columns;
+        if (data[i][j] != 0)
+          break;
+        oneDimensionIndex++;
+      }
+    }
 
+  }
+  
+  public DenseMatrix(){
+    
+  }
+  
+  public DenseMatrix(int rows, int columns){
+    super(rows, columns);
   }
 
   /**
@@ -66,6 +85,7 @@ public class DenseMatrix extends AbstractMatrixFormat {
    */
   @Override
   public void setMatrixCell(MatrixCell cell) {
+    super.setMatrixCell(cell);
     if (!hasCell(cell.getRow(), cell.getColumn()) && cell.getValue() != 0)
       itemsCount++;
     data[cell.getRow()][cell.getColumn()] = cell.getValue();

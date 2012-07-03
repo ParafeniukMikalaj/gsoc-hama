@@ -5,7 +5,7 @@ import java.util.HashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hama.HamaConfiguration;
-import org.apache.hama.examples.linearalgebra.formats.VectorFormat;
+import org.apache.hama.examples.linearalgebra.formats.Vector;
 
 /**
  * This class would be used for any conversions between different vector
@@ -15,11 +15,11 @@ import org.apache.hama.examples.linearalgebra.formats.VectorFormat;
  * converter.
  */
 public class HamaVectorConverter implements
-    VectorConverter<VectorFormat, VectorFormat> {
+    VectorConverter<Vector, Vector> {
 
   private HamaConfiguration conf;
-  private VectorConverter<VectorFormat, VectorFormat> defaultConverter;
-  private HashMap<String, VectorConverter<VectorFormat, VectorFormat>> searchedConverters;
+  private VectorConverter<Vector, Vector> defaultConverter;
+  private HashMap<String, VectorConverter<Vector, Vector>> searchedConverters;
   private static Log LOG = LogFactory.getLog(HamaVectorConverter.class);
 
   /**
@@ -32,7 +32,7 @@ public class HamaVectorConverter implements
         .get("linearalgebra.vector.converter.default");
     try {
       Class<?> defaultConverterClass = Class.forName(defaultConverterName);
-      defaultConverter = (VectorConverter<VectorFormat, VectorFormat>) defaultConverterClass
+      defaultConverter = (VectorConverter<Vector, Vector>) defaultConverterClass
           .newInstance();
     } catch (ClassNotFoundException e) {
       LOG.error("ERROR in creation default converter. Class not found.");
@@ -48,9 +48,9 @@ public class HamaVectorConverter implements
 
   @SuppressWarnings("unchecked")
   @Override
-  public void convert(VectorFormat f, VectorFormat t) {
+  public void convert(Vector f, Vector t) {
     // Maybe it will be better to use full class names?
-    VectorConverter<VectorFormat, VectorFormat> converter;
+    VectorConverter<Vector, Vector> converter;
     String fromClassName = f.getClass().getSimpleName();
     String toClassName = t.getClass().getSimpleName();
     StringBuilder confStringBuilder = new StringBuilder();
@@ -63,7 +63,7 @@ public class HamaVectorConverter implements
       try {
         if (converterClassName != null) {
           converterClass = Class.forName(converterClassName);
-          converter = (VectorConverter<VectorFormat, VectorFormat>) converterClass
+          converter = (VectorConverter<Vector, Vector>) converterClass
               .newInstance();
         } else {
           converter = defaultConverter;

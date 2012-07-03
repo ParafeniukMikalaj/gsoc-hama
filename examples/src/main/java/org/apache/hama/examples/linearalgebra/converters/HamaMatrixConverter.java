@@ -5,7 +5,7 @@ import java.util.HashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hama.HamaConfiguration;
-import org.apache.hama.examples.linearalgebra.formats.MatrixFormat;
+import org.apache.hama.examples.linearalgebra.formats.Matrix;
 
 /**
  * This class would be used for any conversions between different matrix
@@ -15,11 +15,11 @@ import org.apache.hama.examples.linearalgebra.formats.MatrixFormat;
  * converter.
  */
 public class HamaMatrixConverter implements
-    MatrixConverter<MatrixFormat, MatrixFormat> {
+    MatrixConverter<Matrix, Matrix> {
 
   private HamaConfiguration conf;
-  private MatrixConverter<MatrixFormat, MatrixFormat> defaultConverter;
-  private HashMap<String, MatrixConverter<MatrixFormat, MatrixFormat>> searchedConverters;
+  private MatrixConverter<Matrix, Matrix> defaultConverter;
+  private HashMap<String, MatrixConverter<Matrix, Matrix>> searchedConverters;
   private static Log LOG = LogFactory.getLog(HamaMatrixConverter.class);
 
   @SuppressWarnings("unchecked")
@@ -29,7 +29,7 @@ public class HamaMatrixConverter implements
         .get("linearalgebra.matrix.converter.default");
     try {
       Class<?> defaultConverterClass = Class.forName(defaultConverterName);
-      defaultConverter = (MatrixConverter<MatrixFormat, MatrixFormat>) defaultConverterClass
+      defaultConverter = (MatrixConverter<Matrix, Matrix>) defaultConverterClass
           .newInstance();
     } catch (ClassNotFoundException e) {
       LOG.error("ERROR in creation default converter. Class not found.");
@@ -48,9 +48,9 @@ public class HamaMatrixConverter implements
    */
   @SuppressWarnings("unchecked")
   @Override
-  public void convert(MatrixFormat f, MatrixFormat t) {
+  public void convert(Matrix f, Matrix t) {
     // Maybe it will be better to use full class names?
-    MatrixConverter<MatrixFormat, MatrixFormat> converter;
+    MatrixConverter<Matrix, Matrix> converter;
     String fromClassName = f.getClass().getSimpleName();
     String toClassName = t.getClass().getSimpleName();
     StringBuilder confStringBuilder = new StringBuilder();
@@ -63,7 +63,7 @@ public class HamaMatrixConverter implements
       try {
         if (converterClassName != null) {
           converterClass = Class.forName(converterClassName);
-          converter = (MatrixConverter<MatrixFormat, MatrixFormat>) converterClass
+          converter = (MatrixConverter<Matrix, Matrix>) converterClass
               .newInstance();
         } else {
           converter = defaultConverter;

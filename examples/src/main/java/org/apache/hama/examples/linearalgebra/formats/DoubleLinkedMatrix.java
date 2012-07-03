@@ -12,8 +12,8 @@ import org.apache.hama.examples.linearalgebra.structures.VectorCell;
  * with explanation of format will be created later. Items presented with
  * {@link LinkedCell}. Can be easily iterated from left and top edge.
  */
-public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
-    ColumnWiseMatrixFormat, RowWiseMatrixFormat {
+public class DoubleLinkedMatrix extends AbstractMatrix implements
+    ColumnWiseMatrix, RowWiseMatrix {
 
   private int itemsCount;
   private LinkedCell leftStart[];
@@ -68,6 +68,13 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
 
   }
 
+  public DoubleLinkedMatrix(){
+  }
+  
+  public DoubleLinkedMatrix(int rows, int columns){
+    super(rows, columns);
+  }
+  
   /**
    * {@inheritDoc}
    */
@@ -81,7 +88,7 @@ public class DoubleLinkedMatrix extends AbstractMatrixFormat implements
    */
   @Override
   public void setMatrixCell(MatrixCell cell) {
-
+    super.setMatrixCell(cell);
     int row = cell.getRow();
     int column = cell.getColumn();
     double value = cell.getValue();

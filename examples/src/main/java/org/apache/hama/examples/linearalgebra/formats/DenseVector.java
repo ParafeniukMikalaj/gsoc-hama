@@ -9,7 +9,7 @@ import org.apache.hama.examples.linearalgebra.structures.VectorCell;
  * This class contains implementation of Dense Vector Format. Contains
  * one-dimensioal array of double.
  */
-public class DenseVector extends AbstractVectorFormat {
+public class DenseVector extends AbstractVector {
 
   private double[] data;
   private int itemsCount;
@@ -48,6 +48,13 @@ public class DenseVector extends AbstractVectorFormat {
           "DenseVectorIterator can't modify underlying collection");
     }
 
+  }
+  
+  public DenseVector(){
+  }
+  
+  public DenseVector(int dimension){
+    super(dimension);
   }
 
   /**

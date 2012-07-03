@@ -1,6 +1,7 @@
 package org.apache.hama.examples.linearalgebra.formats;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -13,8 +14,8 @@ import org.apache.hama.examples.linearalgebra.structures.VectorCell;
  * implementation of MatrixFormat. Web page with explanation of format will be
  * created later.
  */
-public class CCSMatrix extends AbstractMatrixFormat implements
-    ColumnWiseMatrixFormat {
+public class CCSMatrix extends AbstractMatrix implements
+    ColumnWiseMatrix {
 
   private List<Double> values;
   private List<Integer> indeces;
@@ -66,6 +67,13 @@ public class CCSMatrix extends AbstractMatrixFormat implements
 
   }
 
+  public CCSMatrix() {
+  }
+
+  public CCSMatrix(int rows, int columns) {
+    super(rows, columns);
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -79,6 +87,7 @@ public class CCSMatrix extends AbstractMatrixFormat implements
    */
   @Override
   public void setMatrixCell(MatrixCell cell) {
+    super.setMatrixCell(cell);
     int row = cell.getRow();
     int column = cell.getColumn();
     double value = cell.getValue();
@@ -94,7 +103,7 @@ public class CCSMatrix extends AbstractMatrixFormat implements
       }
     values.add(index, value);
     indeces.add(index, column);
-    for (int i = column + 1; i < column + 1; i++)
+    for (int i = column + 1; i < columns + 1; i++)
       start.set(i, start.get(i) + 1);
   }
 
@@ -105,7 +114,7 @@ public class CCSMatrix extends AbstractMatrixFormat implements
   public void init() {
     values = new ArrayList<Double>();
     indeces = new ArrayList<Integer>();
-    start = new ArrayList<Integer>(columns + 1);
+    start = new ArrayList<Integer>(Collections.nCopies(columns+1, 0));
   }
 
   /**

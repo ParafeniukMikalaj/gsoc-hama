@@ -10,7 +10,7 @@ import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
  * This class contains implementation of Random Access Sparse Matrix Format.
  * Internally contains HashMap<Integer, HashMap<Integer, Double>>
  */
-public class RandomAccessSparseMatrix extends AbstractMatrixFormat {
+public class RandomAccessSparseMatrix extends AbstractMatrix {
 
   private int itemsCount;
   private HashMap<Integer, HashMap<Integer, Double>> data;
@@ -83,6 +83,7 @@ public class RandomAccessSparseMatrix extends AbstractMatrixFormat {
    */
   @Override
   public void setMatrixCell(MatrixCell cell) {
+    super.setMatrixCell(cell);
     int row = cell.getRow();
     int column = cell.getColumn();
     double value = cell.getValue();

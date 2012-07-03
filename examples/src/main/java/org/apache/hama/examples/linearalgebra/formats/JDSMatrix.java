@@ -13,7 +13,7 @@ import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
  * This class contains implementation of Jagged Diagonal Storage (JDS) Matrix
  * Format. Web page with explanation of format will be created later.
  */
-public class JDSMatrix extends AbstractMatrixFormat {
+public class JDSMatrix extends AbstractMatrix {
 
   private HashMap<Integer, List<Double>> values;
   private HashMap<Integer, List<Integer>> indeces;
@@ -71,6 +71,13 @@ public class JDSMatrix extends AbstractMatrixFormat {
     }
 
   }
+  
+  public JDSMatrix(){
+  }
+  
+  public JDSMatrix(int rows, int columns){
+    super(rows, columns);
+  }
 
   /**
    * {@inheritDoc}
@@ -85,6 +92,7 @@ public class JDSMatrix extends AbstractMatrixFormat {
    */
   @Override
   public void setMatrixCell(MatrixCell cell) {
+    super.setMatrixCell(cell);
     int row = cell.getRow();
     int column = cell.getColumn();
     double value = cell.getValue();

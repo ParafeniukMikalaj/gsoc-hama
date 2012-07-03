@@ -1,11 +1,11 @@
 package org.apache.hama.examples.linearalgebra.structures;
 
 /**
- * This class represents matrix cell. It will be used as
- * common data structure to transmit data.
+ * This class represents matrix cell. It will be used as common data structure
+ * to transmit data.
  */
 public class MatrixCell {
-  
+
   private double value;
   private int row, column;
 
@@ -38,5 +38,10 @@ public class MatrixCell {
   public void setColumn(int column) {
     this.column = column;
   }
-  
+
+  @Override
+  public String toString() {
+    return "(" + row + ", " + column + ")=" + value;
+  }
+
 }

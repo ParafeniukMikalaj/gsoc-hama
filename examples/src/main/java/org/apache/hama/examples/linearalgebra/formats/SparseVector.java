@@ -1,6 +1,7 @@
 package org.apache.hama.examples.linearalgebra.formats;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -11,10 +12,12 @@ import org.apache.hama.examples.linearalgebra.structures.VectorCell;
  * This class contains implementation of Sparse Vector Format. Contains
  * list of values and indeces.
  */
-public class SparseVector extends AbstractVectorFormat {
+public class SparseVector extends AbstractVector {
 
+  private boolean locationInited;
   private List<Double> values;
   private List<Integer> indeces;
+  private int[] location;
 
   /**
    * Custom cell iterator for this format.
@@ -52,6 +55,17 @@ public class SparseVector extends AbstractVectorFormat {
     }
 
   }
+  
+  public SparseVector(){
+    locationInited = false;
+  }
+  
+  public SparseVector(int dimension){
+    super(dimension);
+    locationInited = false;
+    location = new int[dimension];
+    Collections.nCopies(-1, location);    
+  }
 
   /**
    * {@inheritDoc}
@@ -75,8 +89,20 @@ public class SparseVector extends AbstractVectorFormat {
     }
     indeces.add(index, position);
     values.add(index, value);
+    locationInited = false;
   }
 
+  /**
+   * May be one of improvements in work with sparse vector.
+   */
+  @SuppressWarnings("unused")
+  private void initLocation() {
+    if (locationInited)
+    Collections.nCopies(-1, location);  
+    for (int i = 0; i < indeces.size(); i++) 
+      location[indeces.get(i)] = i;    
+  }
+  
   /**
    * {@inheritDoc}
    */
