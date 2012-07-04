@@ -14,8 +14,7 @@ import org.apache.hama.examples.linearalgebra.formats.Vector;
  * linearalgebra.vector.converter.Format1-Format2 value: full class name of
  * converter.
  */
-public class HamaVectorConverter implements
-    VectorConverter<Vector, Vector> {
+public class HamaVectorConverter implements VectorConverter<Vector, Vector> {
 
   private HamaConfiguration conf;
   private VectorConverter<Vector, Vector> defaultConverter;

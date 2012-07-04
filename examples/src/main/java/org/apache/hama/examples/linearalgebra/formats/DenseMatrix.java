@@ -51,9 +51,9 @@ public class DenseMatrix extends AbstractMatrix {
       throw new UnsupportedOperationException(
           "DenseMatrixIterator can't modify underlying collection");
     }
-    
-    private void nextNotZero(){
-      while (oneDimensionIndex < rows * columns){
+
+    private void nextNotZero() {
+      while (oneDimensionIndex < rows * columns) {
         i = oneDimensionIndex / columns;
         j = oneDimensionIndex % columns;
         if (data[i][j] != 0)
@@ -63,12 +63,12 @@ public class DenseMatrix extends AbstractMatrix {
     }
 
   }
-  
-  public DenseMatrix(){
-    
+
+  public DenseMatrix() {
+
   }
-  
-  public DenseMatrix(int rows, int columns){
+
+  public DenseMatrix(int rows, int columns) {
     super(rows, columns);
   }
 
@@ -90,7 +90,7 @@ public class DenseMatrix extends AbstractMatrix {
       itemsCount++;
     data[cell.getRow()][cell.getColumn()] = cell.getValue();
   }
-  
+
   /**
    * {@inheritDoc}
    */
@@ -134,7 +134,7 @@ public class DenseMatrix extends AbstractMatrix {
   }
 
   @Override
-  public boolean equals(Object other){
+  public boolean equals(Object other) {
     if (other instanceof DenseMatrix) {
       DenseMatrix otherMatrix = (DenseMatrix) other;
       if (rows != otherMatrix.getRows() || columns != otherMatrix.getColumns())

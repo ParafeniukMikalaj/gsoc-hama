@@ -9,6 +9,9 @@ public class MatrixCell {
   private double value;
   private int row, column;
 
+  /**
+   * Constructor with internal initialization.
+   */
   public MatrixCell(int row, int column, double value) {
     this.row = row;
     this.column = column;

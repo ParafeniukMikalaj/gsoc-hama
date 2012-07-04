@@ -14,8 +14,7 @@ import org.apache.hama.examples.linearalgebra.formats.Matrix;
  * linearalgebra.matrix.converter.Format1-Format2 value: full class name of
  * converter.
  */
-public class HamaMatrixConverter implements
-    MatrixConverter<Matrix, Matrix> {
+public class HamaMatrixConverter implements MatrixConverter<Matrix, Matrix> {
 
   private HamaConfiguration conf;
   private MatrixConverter<Matrix, Matrix> defaultConverter;

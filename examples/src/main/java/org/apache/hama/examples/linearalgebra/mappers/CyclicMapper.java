@@ -1,11 +1,11 @@
 package org.apache.hama.examples.linearalgebra.mappers;
 
 /**
- * This is cyclic mapper for vectors. It gives good partitioning 
- * and load balance for random sparse matrices and dense matrices
- * in couple with {@link CyclicDiagonalMapper}}
+ * This is cyclic mapper for vectors. It gives good partitioning and load
+ * balance for random sparse matrices and dense matrices in couple with
+ * {@link CyclicDiagonalMapper}
  */
-public class CyclicMapper extends AbstractOneDimensionalMapper{
+public class CyclicMapper extends AbstractOneDimensionalMapper {
 
   /**
    * {@inheritDoc}

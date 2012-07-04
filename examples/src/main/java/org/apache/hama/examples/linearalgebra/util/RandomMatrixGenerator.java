@@ -192,9 +192,9 @@ public class RandomMatrixGenerator {
    * case of sparsity > 0.5 The number of generated items can be not exact. This
    * was made to achieve at least linear performance in case of high sparsity.
    */
-  public static class MyGenerator extends
-      BSP<NullWritable, NullWritable, NullWritable, NullWritable, IntegerMessage>
-       {
+  public static class MyGenerator
+      extends
+      BSP<NullWritable, NullWritable, NullWritable, NullWritable, IntegerMessage> {
     public static final Log LOG = LogFactory.getLog(MyEstimator.class);
 
     // String which identifies master task
@@ -349,7 +349,8 @@ public class RandomMatrixGenerator {
             logicalIndex = toGlobal(localIndex, peerNumber);
             row = logicalIndex / rows;
             column = logicalIndex % columns;
-            MatrixCell logicalCell = new MatrixCell(row, column, localCell.getValue());
+            MatrixCell logicalCell = new MatrixCell(row, column,
+                localCell.getValue());
             result[offset + i] = logicalCell;
             i++;
           }
@@ -369,10 +370,10 @@ public class RandomMatrixGenerator {
 
   }
 
-  public static Matrix getResult(){
+  public static Matrix getResult() {
     return MyGenerator.getResult();
   }
-  
+
   /**
    * This method copies output from System.out to tmp file from configuration
    */

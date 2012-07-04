@@ -1,15 +1,15 @@
 package org.apache.hama.examples.linearalgebra.structures;
 
 /**
- * This class represents vector cell. It will be used as
- * common data structure to transmit data.
+ * This class represents vector cell. It will be used as common data structure
+ * to transmit data.
  */
 public class VectorCell {
   private double value;
-  private int position;
+  private int index;
 
-  public VectorCell(int position, double value) {
-    this.position = position;
+  public VectorCell(int index, double value) {
+    this.index = index;
     this.value = value;
   }
 
@@ -17,8 +17,8 @@ public class VectorCell {
     return value;
   }
 
-  public int getPosition() {
-    return position;
+  public int getIndex() {
+    return index;
   }
 
 }

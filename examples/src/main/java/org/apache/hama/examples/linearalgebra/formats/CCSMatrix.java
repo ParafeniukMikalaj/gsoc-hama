@@ -14,8 +14,7 @@ import org.apache.hama.examples.linearalgebra.structures.VectorCell;
  * implementation of MatrixFormat. Web page with explanation of format will be
  * created later.
  */
-public class CCSMatrix extends AbstractMatrix implements
-    ColumnWiseMatrix {
+public class CCSMatrix extends AbstractMatrix implements ColumnWiseMatrix {
 
   private List<Double> values;
   private List<Integer> indeces;
@@ -114,7 +113,7 @@ public class CCSMatrix extends AbstractMatrix implements
   public void init() {
     values = new ArrayList<Double>();
     indeces = new ArrayList<Integer>();
-    start = new ArrayList<Integer>(Collections.nCopies(columns+1, 0));
+    start = new ArrayList<Integer>(Collections.nCopies(columns + 1, 0));
   }
 
   /**

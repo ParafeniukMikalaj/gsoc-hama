@@ -49,11 +49,11 @@ public class DenseVector extends AbstractVector {
     }
 
   }
-  
-  public DenseVector(){
+
+  public DenseVector() {
   }
-  
-  public DenseVector(int dimension){
+
+  public DenseVector(int dimension) {
     super(dimension);
   }
 
@@ -70,9 +70,9 @@ public class DenseVector extends AbstractVector {
    */
   @Override
   public void setVectorCell(VectorCell cell) {
-    if (!hasCell(cell.getPosition()) && cell.getValue() != 0)
+    if (!hasCell(cell.getIndex()) && cell.getValue() != 0)
       itemsCount++;
-    data[cell.getPosition()] = cell.getValue();
+    data[cell.getIndex()] = cell.getValue();
   }
 
   /**

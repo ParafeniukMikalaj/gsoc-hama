@@ -9,8 +9,8 @@ import java.util.NoSuchElementException;
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 
 /**
- * This class contains implementation of Sparse Vector Format. Contains
- * list of values and indeces.
+ * This class contains implementation of Sparse Vector Format. Contains list of
+ * values and indeces.
  */
 public class SparseVector extends AbstractVector {
 
@@ -25,11 +25,11 @@ public class SparseVector extends AbstractVector {
   private class SparseVectorIterator implements Iterator<VectorCell> {
 
     private int index;
-    
+
     public SparseVectorIterator() {
       index = 0;
     }
-    
+
     @Override
     public boolean hasNext() {
       if (index >= values.size())
@@ -55,16 +55,16 @@ public class SparseVector extends AbstractVector {
     }
 
   }
-  
-  public SparseVector(){
+
+  public SparseVector() {
     locationInited = false;
   }
-  
-  public SparseVector(int dimension){
+
+  public SparseVector(int dimension) {
     super(dimension);
     locationInited = false;
     location = new int[dimension];
-    Collections.nCopies(-1, location);    
+    Collections.nCopies(-1, location);
   }
 
   /**
@@ -80,7 +80,7 @@ public class SparseVector extends AbstractVector {
    */
   @Override
   public void setVectorCell(VectorCell cell) {
-    int position = cell.getPosition();
+    int position = cell.getIndex();
     double value = cell.getValue();
     int index = indeces.indexOf(position);
     if (index != -1) {
@@ -98,11 +98,11 @@ public class SparseVector extends AbstractVector {
   @SuppressWarnings("unused")
   private void initLocation() {
     if (locationInited)
-    Collections.nCopies(-1, location);  
-    for (int i = 0; i < indeces.size(); i++) 
-      location[indeces.get(i)] = i;    
+      Collections.nCopies(-1, location);
+    for (int i = 0; i < indeces.size(); i++)
+      location[indeces.get(i)] = i;
   }
-  
+
   /**
    * {@inheritDoc}
    */

@@ -10,9 +10,8 @@ import java.util.List;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 
 /**
- * Base implementation of {@link Matrix }, which implements
- * {@link Writable} interface. Also contains set of useful common methods like
- * counting sparsity.
+ * Base implementation of {@link Matrix }, which implements {@link Writable}
+ * interface. Also contains set of useful common methods like counting sparsity.
  */
 public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
 
@@ -79,8 +78,6 @@ public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
     if (!nonzeroColumns.contains(column))
       nonzeroColumns.add(column);
   }
-  
-  
 
   @Override
   public List<Integer> getNonZeroRows() {

@@ -1,8 +1,11 @@
 package org.apache.hama.examples.linearalgebra.structures;
 
+/**
+ * My implementation of Point which allows to work with x and y as integers.
+ */
 public class Point {
   private int x, y;
-  
+
   public Point(int x, int y) {
     this.x = x;
     this.y = y;

@@ -15,14 +15,14 @@ public abstract class AbstractVector implements Vector {
 
   protected int dimension;
 
-  public AbstractVector(){
+  public AbstractVector() {
   }
-  
+
   public AbstractVector(int dimension) {
     this.dimension = dimension;
     init();
   }
-  
+
   /**
    * {@inheritDoc}
    */
@@ -60,7 +60,7 @@ public abstract class AbstractVector implements Vector {
       Iterator<VectorCell> iterator = this.getDataIterator();
       while (iterator.hasNext()) {
         VectorCell cell = iterator.next();
-        out.writeInt(cell.getPosition());
+        out.writeInt(cell.getIndex());
         out.writeDouble(cell.getValue());
       }
     } else {

@@ -30,10 +30,17 @@ import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 import org.apache.hama.examples.linearalgebra.structures.VectorCell;
 import org.apache.hama.examples.linearalgebra.util.RandomMatrixGenerator;
 
+/**
+ * This class was designed to be responsible for all methods for linear algebra
+ * operations. Currently implements only SpMV.
+ */
 public class LAMath {
 
   private double sparse = 0.3;
 
+  /**
+   * Multiplies matrix to vector in case of sparse and dense matrix.
+   */
   public Vector multiply(Matrix m, Vector v) throws IOException,
       InterruptedException, ClassNotFoundException {
     if (m.getSparsity() < sparse)
@@ -42,6 +49,9 @@ public class LAMath {
       return DenseMatrixVectorMultiplication(m, v);
   }
 
+  /**
+   * Multiplies sparse matrix to vector.
+   */
   public Vector SparseMatrixVectorMultiplication(Matrix m, Vector v)
       throws IOException, InterruptedException, ClassNotFoundException {
     HamaConfiguration conf = new HamaConfiguration();
@@ -68,16 +78,24 @@ public class LAMath {
     }
   }
 
+  /**
+   * Multiplies sparse matrix to vector.
+   */
   public Vector DenseMatrixVectorMultiplication(Matrix m, Vector v) {
-    return null;
+    throw new UnsupportedOperationException(
+        "Dense matrix vector multiplication is not implemented yet.");
   }
 
+  /**
+   * This class performs sparse matrix vector multiplication. u = m * v. m -
+   * input matrix, u - partial sum, v - input vector.
+   */
   private class SpMV
       extends
       BSP<NullWritable, NullWritable, NullWritable, NullWritable, VectorCellMessage> {
-    private Mapper matrixMapper, uMapper, vMapper;
-    private Matrix localMatrices[];
-    private Vector localV[];
+    private Mapper mMapper, uMapper, vMapper;
+    private Matrix mLocalArray[];
+    private Vector vLocalArray[];
     private Matrix m;
     private Vector v;
     private int peerCount;
@@ -100,37 +118,36 @@ public class LAMath {
       super.setup(peer);
       masterTask = peer.getPeerName(peer.getNumPeers() / 2);
       peerCount = peer.getNumPeers();
+      mLocalArray = new Matrix[peerCount];
+      vLocalArray = new SparseVector[peerCount];
       SpMVStrategy strategy = new DefaultSpMVStrategy();
       strategy.analyze(m, v, peerCount);
       m = strategy.getMatrixFormat();
       v = strategy.getVectorFormat();
-      matrixMapper = strategy.getMatrixMapper();
+      mMapper = strategy.getMatrixMapper();
       vMapper = strategy.getVMapper();
       uMapper = strategy.getUMapper();
-      localMatrices = new Matrix[peerCount];
-      localV = new SparseVector[peerCount];
       for (int i = 0; i < peerCount; i++)
-        localMatrices[i] = strategy.getNewMatrixFormat();
+        mLocalArray[i] = strategy.getNewMatrixFormat();
+
+      // TODO May be it is not the best idea to store local matrices
+      // If better implementation exists please notify the developers.
 
       // matrix distribution.
-      Iterator<MatrixCell> matrixIterator = m.getDataIterator();
-      while (matrixIterator.hasNext()) {
-        MatrixCell cell = matrixIterator.next();
-        int peerNumber = matrixMapper.owner(cell.getRow(), cell.getColumn());
-        localMatrices[peerNumber].setMatrixCell(cell);
+      Iterator<MatrixCell> mIterator = m.getDataIterator();
+      while (mIterator.hasNext()) {
+        MatrixCell mCell = mIterator.next();
+        int owner = mMapper.owner(mCell.getRow(), mCell.getColumn());
+        mLocalArray[owner].setMatrixCell(mCell);
       }
 
       // v vector distribution
       Iterator<VectorCell> vIterator = v.getDataIterator();
       while (vIterator.hasNext()) {
-        VectorCell cell = vIterator.next();
-        int peerNumber = vMapper.owner(cell.getPosition());
-        localV[peerNumber].setVectorCell(cell);
+        VectorCell vCell = vIterator.next();
+        int owner = vMapper.owner(vCell.getIndex());
+        vLocalArray[owner].setVectorCell(vCell);
       }
-
-      for (int i = 0; i < peerCount; i++)
-        if (localMatrices[i] instanceof ContractibleMatrix)
-          ((ContractibleMatrix) localMatrices[i]).compress();
 
     }
 
@@ -138,103 +155,111 @@ public class LAMath {
     public void bsp(
         BSPPeer<NullWritable, NullWritable, NullWritable, NullWritable, VectorCellMessage> peer)
         throws IOException, SyncException, InterruptedException {
-      HashMap<Integer, Integer> backRowMapping = null;
-      List<Integer> nonZeroColumns = null;
-      List<String> peerNamesList = Arrays.asList(peer.getAllPeerNames());
+      HashMap<Integer, Integer> rowBackMapping = null;
+      List<Integer> nonZeroMatrixColumns = null;
+      List<String> peerNameList = Arrays.asList(peer.getAllPeerNames());
       SparseVector uLocal = new SparseVector();
       String peerName = peer.getPeerName();
-      int peerIndex = peerNamesList.indexOf(peerName);
-      Matrix localMatrix = localMatrices[peerIndex];
-      Vector vLocal = localV[peerIndex];
+      int peerIndex = peerNameList.indexOf(peerName);
+      Matrix mLocal = mLocalArray[peerIndex];
+      Vector vLocal = vLocalArray[peerIndex];
 
       // Compressing matrix if possible.
-      if (localMatrix instanceof ContractibleMatrix) {
-        ContractibleMatrix tmpMatrix = (ContractibleMatrix) localMatrix;
-        tmpMatrix.compress();
-        backRowMapping = tmpMatrix.getBackRowMapping();
-        HashMap<Integer, Integer> forwardRowMapping = tmpMatrix
+      if (mLocal instanceof ContractibleMatrix) {
+        ContractibleMatrix contractibleMatrix = (ContractibleMatrix) mLocal;
+        contractibleMatrix.compress();
+        rowBackMapping = contractibleMatrix.getBackRowMapping();
+        HashMap<Integer, Integer> columnForwardMapping = contractibleMatrix
             .getColumnMapping();
-        SparseVector newV = new SparseVector(vLocal.getDimension());
+        SparseVector newVLocal = new SparseVector(vLocal.getDimension());
         Iterator<VectorCell> vIterator = vLocal.getDataIterator();
         while (vIterator.hasNext()) {
-          VectorCell cell = vIterator.next();
-          int index = cell.getPosition();
-          double value = cell.getValue();
-          if (forwardRowMapping.containsKey(index))
-            index = forwardRowMapping.get(index);
-          newV.setVectorCell(new VectorCell(index, value));
+          VectorCell vCell = vIterator.next();
+          int index = vCell.getIndex();
+          double value = vCell.getValue();
+          if (columnForwardMapping.containsKey(index))
+            index = columnForwardMapping.get(index);
+          newVLocal.setVectorCell(new VectorCell(index, value));
         }
-        vLocal = newV;
+        vLocal = newVLocal;
       }
 
       // ***Fanout SuperStep***
-      if (localMatrix instanceof SpMVMatrix)
-        nonZeroColumns = ((SpMVMatrix) localMatrix).getNonZeroColumns();
-      for (Integer index : nonZeroColumns) {
-        int owner = vMapper.owner(index);
+      // In this superstep components of input vector v are communicated.
+      if (mLocal instanceof SpMVMatrix)
+        // TODO do something if matrix is in not valid format. How to
+        // handle exceptions in bsp procedure?
+        nonZeroMatrixColumns = ((SpMVMatrix) mLocal).getNonZeroColumns();
+      for (Integer columnIndex : nonZeroMatrixColumns) {
+        int owner = vMapper.owner(columnIndex);
         if (owner != peerIndex) {
-          String destinationPeerName = peerNamesList.get(owner);
-          VectorCellMessage message = new VectorCellMessage(peerName, index, 0);
-          peer.send(destinationPeerName, message);
+          String destinationPeerName = peerNameList.get(owner);
+          VectorCellMessage vMessage = new VectorCellMessage(peerName,
+              columnIndex, 0);
+          peer.send(destinationPeerName, vMessage);
         }
       }
       peer.sync();
 
       for (int i = 0; i < peer.getNumCurrentMessages(); i++) {
-        VectorCellMessage requestedCell = peer.getCurrentMessage();
-        int position = requestedCell.getIndex();
-        double value = vLocal.getCell(position);
-        requestedCell.setValue(value);
-        String sender = requestedCell.getTag().toString();
-        peer.send(sender, requestedCell);
+        VectorCellMessage requestedVMessage = peer.getCurrentMessage();
+        int index = requestedVMessage.getIndex();
+        double value = vLocal.getCell(index);
+        requestedVMessage.setValue(value);
+        String senderName = requestedVMessage.getTag().toString();
+        peer.send(senderName, requestedVMessage);
       }
       peer.sync();
 
       for (int i = 0; i < peer.getNumCurrentMessages(); i++) {
-        VectorCellMessage receivedCell = peer.getCurrentMessage();
-        VectorCell cell = new VectorCell(receivedCell.getIndex(),
-            receivedCell.getValue());
-        vLocal.setVectorCell(cell);
+        VectorCellMessage receivedVMessage = peer.getCurrentMessage();
+        VectorCell vectorCell = new VectorCell(receivedVMessage.getIndex(),
+            receivedVMessage.getValue());
+        vLocal.setVectorCell(vectorCell);
       }
       peer.sync();
 
       // ***Local computation superstep.***
-      Iterator<MatrixCell> matrixIterator = localMatrix.getDataIterator();
-      while (matrixIterator.hasNext()) {
-        MatrixCell mCell = matrixIterator.next();
+      // In this superstep we count local contribution to result u = m * v.
+      Iterator<MatrixCell> mIterator = mLocal.getDataIterator();
+      while (mIterator.hasNext()) {
+        MatrixCell mCell = mIterator.next();
         int row = mCell.getRow();
         int column = mCell.getColumn();
         double mValue = mCell.getValue();
         double vValue = vLocal.getCell(column);
         double newValue = uLocal.getCell(row) + mValue * vValue;
-        VectorCell rCell = new VectorCell(row, newValue);
-        uLocal.setVectorCell(rCell);
+        VectorCell uCell = new VectorCell(row, newValue);
+        uLocal.setVectorCell(uCell);
       }
 
       // decompressing local contribution vector if it was compressed.
-      if (backRowMapping != null) {
+      if (rowBackMapping != null) {
         SparseVector newU = new SparseVector(uLocal.getDimension());
         Iterator<VectorCell> uIterator = uLocal.getDataIterator();
         while (uIterator.hasNext()) {
-          VectorCell cell = uIterator.next();
-          int index = cell.getPosition();
-          double value = cell.getValue();
-          if (backRowMapping.containsKey(index))
-            index = backRowMapping.get(index);
+          VectorCell uCell = uIterator.next();
+          int index = uCell.getIndex();
+          double value = uCell.getValue();
+          if (rowBackMapping.containsKey(index))
+            index = rowBackMapping.get(index);
           newU.setVectorCell(new VectorCell(index, value));
-          uLocal = newU;
         }
+        uLocal = newU;
       }
 
       // ***Fanin Superstep***
+      // In this superstep components of local contributions vector u are
+      // communicated
+      // and summed.
       Iterator<VectorCell> uIterator = uLocal.getDataIterator();
       while (uIterator.hasNext()) {
-        VectorCell cell = uIterator.next();
-        int index = cell.getPosition();
-        double value = cell.getValue();
+        VectorCell uCell = uIterator.next();
+        int index = uCell.getIndex();
+        double value = uCell.getValue();
         int owner = uMapper.owner(index);
         if (owner != peerIndex) {
-          String destinationPeerName = peerNamesList.get(owner);
+          String destinationPeerName = peerNameList.get(owner);
           VectorCellMessage message = new VectorCellMessage(peerName, index,
               value);
           peer.send(destinationPeerName, message);
@@ -243,29 +268,32 @@ public class LAMath {
       peer.sync();
 
       for (int i = 0; i < peer.getNumCurrentMessages(); i++) {
-        VectorCellMessage receivedCell = peer.getCurrentMessage();
-        int index = receivedCell.getIndex();
-        double value = receivedCell.getValue();
+        VectorCellMessage receivedUCell = peer.getCurrentMessage();
+        int index = receivedUCell.getIndex();
+        double value = receivedUCell.getValue();
         double localValue = uLocal.getCell(index);
         double newValue = uLocal.getCell(index) + localValue * value;
         VectorCell rCell = new VectorCell(index, newValue);
         uLocal.setVectorCell(rCell);
       }
-      Iterator<VectorCell> localContributionIterator = uLocal.getDataIterator();
-      while (localContributionIterator.hasNext()) {
-        VectorCell cell = localContributionIterator.next();
-        peer.send(
-            masterTask,
-            new VectorCellMessage(peerName, cell.getPosition(), cell.getValue()));
+      uIterator = uLocal.getDataIterator();
+      while (uIterator.hasNext()) {
+        VectorCell uCell = uIterator.next();
+        if (uMapper.owner(uCell.getIndex()) == peerIndex)
+          peer.send(
+              masterTask,
+              new VectorCellMessage(peerName, uCell.getIndex(), uCell
+                  .getValue()));
       }
       peer.sync();
 
+      // master task constructs single result vector from received messages.
       if (peer.getPeerName().equals(masterTask)) {
         result = new DenseVector(m.getRows());
         for (int i = 0; i < peer.getNumCurrentMessages(); i++) {
-          VectorCellMessage receivedCell = peer.getCurrentMessage();
-          int index = receivedCell.getIndex();
-          double value = receivedCell.getValue();
+          VectorCellMessage receivedUCell = peer.getCurrentMessage();
+          int index = receivedUCell.getIndex();
+          double value = receivedUCell.getValue();
           result.setVectorCell(new VectorCell(index, value));
         }
       }

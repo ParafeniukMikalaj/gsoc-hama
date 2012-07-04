@@ -71,11 +71,11 @@ public class JDSMatrix extends AbstractMatrix {
     }
 
   }
-  
-  public JDSMatrix(){
+
+  public JDSMatrix() {
   }
-  
-  public JDSMatrix(int rows, int columns){
+
+  public JDSMatrix(int rows, int columns) {
     super(rows, columns);
   }
 

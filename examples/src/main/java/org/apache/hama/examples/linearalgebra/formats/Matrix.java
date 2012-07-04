@@ -54,6 +54,7 @@ public interface Matrix extends Writable {
 
   /**
    * Check if cell with row and column index presented in matrix format.
+   * 
    * @return true if cell is presented, false otherwise.
    */
   public boolean hasCell(int row, int column);

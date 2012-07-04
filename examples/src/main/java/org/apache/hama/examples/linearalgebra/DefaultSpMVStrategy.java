@@ -6,40 +6,64 @@ import org.apache.hama.examples.linearalgebra.mappers.CyclicDiagonalMapper;
 import org.apache.hama.examples.linearalgebra.mappers.CyclicMapper;
 import org.apache.hama.examples.linearalgebra.mappers.Mapper;
 
-public class DefaultSpMVStrategy implements SpMVStrategy{
-  private Mapper matrixMapper, vMapper, uMapper;
+/**
+ * Simple implementation of {@link SpMVStrategy} Uses cartesian diagonal
+ * distribution for matrix and cyclic cartesian distribution for vectors.
+ * Doesn't converts matrices and vectors to other formats.
+ */
+public class DefaultSpMVStrategy implements SpMVStrategy {
+  private Mapper mMapper, vMapper, uMapper;
   private Matrix matrixFormat;
   private Vector vectorFormat;
+
+  /**
+   * {@inheritDoc}
+   */
   public void analyze(Matrix m, Vector v, int peerCount) {
     matrixFormat = m;
     vectorFormat = v;
     int rows = m.getRows();
     int columns = m.getColumns();
-    matrixMapper = new CyclicDiagonalMapper(rows, columns, peerCount);
+    mMapper = new CyclicDiagonalMapper(rows, columns, peerCount);
     vMapper = new CyclicMapper(rows, columns, peerCount);
     uMapper = new CyclicMapper(rows, columns, peerCount);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public Mapper getMatrixMapper() {
-    return matrixMapper;
+    return mMapper;
   }
-  
+
+  /**
+   * {@inheritDoc}
+   */
   public Mapper getVMapper() {
     return vMapper;
   }
-  
+
+  /**
+   * {@inheritDoc}
+   */
   public Mapper getUMapper() {
     return uMapper;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public Matrix getMatrixFormat() {
     return matrixFormat;
   }
-  
+
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Matrix getNewMatrixFormat() {
     try {
-      Matrix m = (Matrix)matrixFormat.getClass().newInstance();
+      Matrix m = (Matrix) matrixFormat.getClass().newInstance();
       m.setRows(matrixFormat.getRows());
       m.setColumns(matrixFormat.getColumns());
       m.init();
@@ -52,9 +76,11 @@ public class DefaultSpMVStrategy implements SpMVStrategy{
     return null;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public Vector getVectorFormat() {
     return vectorFormat;
   }
-
 
 }

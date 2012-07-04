@@ -68,13 +68,13 @@ public class DoubleLinkedMatrix extends AbstractMatrix implements
 
   }
 
-  public DoubleLinkedMatrix(){
+  public DoubleLinkedMatrix() {
   }
-  
-  public DoubleLinkedMatrix(int rows, int columns){
+
+  public DoubleLinkedMatrix(int rows, int columns) {
     super(rows, columns);
   }
-  
+
   /**
    * {@inheritDoc}
    */
