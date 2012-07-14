@@ -1,5 +1,6 @@
 package org.apache.hama.examples.linearalgebra.formats;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -108,5 +109,10 @@ public class DenseVector extends AbstractVector {
   public int getItemsCount() {
     return itemsCount;
   }
+
+  @Override
+  public String toString() {
+    return "DenseVector [data=" + Arrays.toString(data) + "]";
+  }  
 
 }

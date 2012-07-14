@@ -17,16 +17,33 @@ public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
 
   protected int rows, columns;
   protected List<Integer> nonzeroRows, nonzeroColumns;
+  private boolean inited = false;
 
   public AbstractMatrix() {
-    nonzeroRows = new ArrayList<Integer>();
-    nonzeroColumns = new ArrayList<Integer>();
+    init();
   }
 
   public AbstractMatrix(int rows, int columns) {
     this.rows = rows;
     this.columns = columns;
     init();
+  }
+  
+  /**
+   * Method for basic spmv testing
+   */
+  public void setData(double[][] data) {
+    for (int i = 0; i < data.length; i++)
+      for (int j = 0; j < data[0].length; j++)
+        if (data[i][j] != 0)
+          setMatrixCell(new MatrixCell(i, j, data[i][j]));
+  }
+  
+  @Override
+  public void init() {
+    inited = true;
+    nonzeroRows = new ArrayList<Integer>();
+    nonzeroColumns = new ArrayList<Integer>();   
   }
 
   /**
@@ -86,6 +103,12 @@ public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
 
   @Override
   public List<Integer> getNonZeroColumns() {
+    System.out.println("Returning columns");
+    
+    if  (!inited)
+      init();
+    if (nonzeroColumns == null)
+      System.out.println("Returning null columns");
     return nonzeroColumns;
   }
 

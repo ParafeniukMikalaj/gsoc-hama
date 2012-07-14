@@ -21,4 +21,11 @@ public class VectorCell {
     return index;
   }
 
+  @Override
+  public String toString() {
+    return "(" + index + ", " + value + ")";
+  }
+  
+  
+
 }

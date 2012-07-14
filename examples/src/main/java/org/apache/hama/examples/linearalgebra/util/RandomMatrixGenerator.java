@@ -31,7 +31,6 @@ import org.apache.hama.examples.linearalgebra.formats.CRSMatrix;
 import org.apache.hama.examples.linearalgebra.formats.DenseMatrix;
 import org.apache.hama.examples.linearalgebra.formats.Matrix;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
-import org.apache.mahout.math.map.OpenIntDoubleHashMap;
 
 /**
  * This class can generate random matrix. It uses {@link MyGenerator}. You can
@@ -52,8 +51,10 @@ public class RandomMatrixGenerator {
 
   public static String columnsString = "randomgenerator.columns";
 
-  private static int generatedCount = -1;
-
+  public static boolean configurationNull() {
+    return conf == null;
+  }
+  
   public static void setConfiguration(HamaConfiguration configuration) {
     conf = configuration;
   }
@@ -197,19 +198,16 @@ public class RandomMatrixGenerator {
       BSP<NullWritable, NullWritable, NullWritable, NullWritable, IntegerMessage> {
     public static final Log LOG = LogFactory.getLog(MyEstimator.class);
 
-    // String which identifies master task
-    private String masterTask;
     // Some shared fields
 
-    private static MatrixCell result[] = null;
-    private static Matrix matrixFormat;
+    private static Matrix result;
     private static float neededSparsity;
     private static int remainder, quotient, neededItemsCount;
     private static int peerCount = 1;
     // This array is used to store final output
     private static Random rand;
 
-    private Matrix createMatrixFormat() {
+    private Matrix createresult() {
       Matrix result;
       if (neededSparsity < 0.5)
         result = new CRSMatrix();
@@ -225,11 +223,10 @@ public class RandomMatrixGenerator {
       neededSparsity = getSparsity();
       int rows = getRows();
       int columns = getColumns();
-      matrixFormat = createMatrixFormat();
-      matrixFormat.setRows(rows);
-      matrixFormat.setColumns(columns);
-      matrixFormat.init();
-      this.masterTask = peer.getPeerName(peer.getNumPeers() / 2);
+      result = createresult();
+      result.setRows(rows);
+      result.setColumns(columns);
+      result.init();
       int totalNumber = rows * columns;
       peerCount = peer.getNumPeers();
       rand = new Random();
@@ -271,9 +268,9 @@ public class RandomMatrixGenerator {
     public void bsp(
         BSPPeer<NullWritable, NullWritable, NullWritable, NullWritable, IntegerMessage> peer)
         throws IOException, SyncException, InterruptedException {
-      int rows = matrixFormat.getRows();
-      int columns = matrixFormat.getColumns();
-      Matrix localMatrix = createMatrixFormat();
+      int rows = result.getRows();
+      int columns = result.getColumns();
+      Matrix localMatrix = createresult();
       List<String> peerNamesList = Arrays.asList(peer.getAllPeerNames());
       int localIndex, logicalIndex, row, column, limit;
       double value;
@@ -289,20 +286,18 @@ public class RandomMatrixGenerator {
       // Generation of matrix items
       if (neededSparsity < 0.5) {
         // Algorithm for sparse matrices
-        OpenIntDoubleHashMap indexes = new OpenIntDoubleHashMap();
         int needsToGenerate = neededItemsCount / peerCount;
         if (peerNumber < neededItemsCount % peerCount)
           needsToGenerate++;
-        while (indexes.size() < needsToGenerate) {
+        while (localMatrix.getItemsCount() < needsToGenerate) {
           localIndex = (int) (rand.nextDouble() * limit);
           logicalIndex = toGlobal(localIndex, peerNumber);
-          if (!indexes.containsKey(logicalIndex)) {
+          if (!localMatrix.hasCell(0, logicalIndex)) {
             row = 0;
             column = localIndex;
             value = rand.nextDouble();
             MatrixCell cell = new MatrixCell(row, column, value);
             localMatrix.setMatrixCell(cell);
-            indexes.put(logicalIndex, value);
           }
         }
       } else {
@@ -316,56 +311,23 @@ public class RandomMatrixGenerator {
             localMatrix.setMatrixCell(cell);
           }
       }
-      // Sending the number of generated items to masterTask
-      peer.send(masterTask,
-          new IntegerMessage(peer.getPeerName(), localMatrix.getItemsCount()));
       peer.sync();
-      // Superstep 2
-      // masterTask counts offset in global array for each peer and sends it.
-      if (peer.getPeerName().equals(masterTask)) {
-        int offset = 0;
-        IntegerMessage received;
-        while ((received = peer.getCurrentMessage()) != null) {
-          String recieverName = received.getTag();
-          int recieverCount = received.getData();
-          peer.send(recieverName, new IntegerMessage(masterTask, offset));
-          offset += recieverCount;
-          generatedCount = offset;
-        }
-        result = new MatrixCell[offset + 1];
-      }
-      peer.sync();
-      // Superstep 3
-      // Peers are filling the result array
-      IntegerMessage received;
-      if ((received = peer.getCurrentMessage()) != null) {
-        if (received.getTag().equals(masterTask)) {
-          int offset = received.getData();
-          int i = 0;
-          Iterator<MatrixCell> cellIterator = localMatrix.getDataIterator();
-          while (cellIterator.hasNext()) {
-            MatrixCell localCell = cellIterator.next();
-            localIndex = localCell.getColumn();
-            logicalIndex = toGlobal(localIndex, peerNumber);
-            row = logicalIndex / rows;
-            column = logicalIndex % columns;
-            MatrixCell logicalCell = new MatrixCell(row, column,
-                localCell.getValue());
-            result[offset + i] = logicalCell;
-            i++;
-          }
-        }
-      }
-      peer.sync();
-      if (peer.getPeerName().equals(masterTask)) {
-        for (int i = 0; i < generatedCount; i++)
-          matrixFormat.setMatrixCell(result[i]);
-      }
+      Iterator<MatrixCell> cellIterator = localMatrix.getDataIterator();
+      while (cellIterator.hasNext()) {
+        MatrixCell localCell = cellIterator.next();
+        localIndex = localCell.getColumn();
+        logicalIndex = toGlobal(localIndex, peerNumber);
+        row = logicalIndex / columns;
+        column = logicalIndex % columns;
+        MatrixCell logicalCell = new MatrixCell(row, column,
+            localCell.getValue());
 
+        result.setMatrixCell(logicalCell);
+      }
     }
 
     public static Matrix getResult() {
-      return matrixFormat;
+      return result;
     }
 
   }
@@ -408,7 +370,8 @@ public class RandomMatrixGenerator {
 
     BSPJobClient jobClient = new BSPJobClient(conf);
     ClusterStatus cluster = jobClient.getClusterStatus(true);
-    RandomMatrixGenerator.setConfiguration(conf);
+    if (RandomMatrixGenerator.configurationNull())
+      RandomMatrixGenerator.setConfiguration(conf);
     parseArgs(args);
 
     if (RandomMatrixGenerator.getRequestedBspTasksCount() != -1) {

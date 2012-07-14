@@ -3,6 +3,7 @@ package org.apache.hama.examples.linearalgebra.formats;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -20,7 +21,8 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
 
   private List<Double> values;
   private List<Integer> indeces;
-  private List<Integer> start;
+  private int[] start;
+  private HashSet<Integer> containedIndeces;
   private HashMap<Integer, Integer> rowIndexMapping, colIndexMapping,
       rowIndexBackMapping, colIndexBackMapping;
 
@@ -49,7 +51,7 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
             "CRSMatrixIterator has no more elements to iterate");
       int row = getRow(index);
       int column = indeces.get(index);
-      double value = indeces.get(index);
+      double value = values.get(index);
       index++;
       return new MatrixCell(row, column, value);
     }
@@ -62,8 +64,8 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
 
     private int getRow(int index) {
       int row = 0;
-      for (; row < start.size() - 1; row++)
-        if (index >= start.get(row) && index < start.get(row + 1))
+      for (; row < start.length - 1; row++)
+        if (index >= start[row] && index < start[row + 1])
           break;
       return row;
     }
@@ -76,7 +78,31 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
 
   public CRSMatrix(int rows, int columns) {
     super(rows, columns);
+    init();
     rowIndexMapping = colIndexMapping = rowIndexBackMapping = colIndexBackMapping = null;
+  }
+
+  private int getGreaterIndex(List<Integer> list, int start, int end, int value) {
+    int initialEnd = end;
+    while (end - start > 1) {
+      int middle = (end + start) / 2;
+      if (middle == start || middle == end)
+        break;
+      if (list.get(middle) < value)
+        start = middle;
+      else
+        end = middle;
+    }
+    if (start > end)
+      return start;
+    try {
+      for (int i = start; i <= end; i++)
+        if (list.get(i) >= value)
+          return i;
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return initialEnd + 1;
   }
 
   /**
@@ -91,27 +117,31 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
    * {@inheritDoc}
    */
   @Override
-  public void setMatrixCell(MatrixCell cell) {
+  public synchronized void setMatrixCell(MatrixCell cell) {
     super.setMatrixCell(cell);
+    boolean inserted = true;
     int row = cell.getRow();
     int column = cell.getColumn();
     double value = cell.getValue();
-    int startIndex = start.get(row);
-    int endIndex = start.get(row + 1);
-    int index = startIndex;
-    for (int i = startIndex; i < endIndex; i++)
-      if (indeces.get(i) >= column) {
-        if (indeces.get(i) == column) {
-          values.remove(i);
-          indeces.remove(i);
-        }
-        index = i;
-        break;
-      }
+    int startIndex = 0;
+    try {
+      startIndex = start[row];
+    } catch (Exception e){
+      e.printStackTrace();
+    }
+    int endIndex = start[row + 1];
+    int index = getGreaterIndex(indeces, startIndex, endIndex - 1, column);
+    if (index < indeces.size() && indeces.get(index) == column) {
+      inserted = false;
+      values.remove(index);
+      indeces.remove(index);
+    }
+    containedIndeces.add(row * columns + column);
     values.add(index, value);
     indeces.add(index, column);
-    for (int i = row + 1; i < rows + 1; i++)
-      start.set(i, start.get(i) + 1);
+    if (inserted)
+      for (int i = row + 1; i < rows + 1; i++)
+        start[i] = start[i] + 1;
   }
 
   /**
@@ -119,9 +149,11 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
    */
   @Override
   public void init() {
+    super.init();
+    containedIndeces = new HashSet<Integer>();
     values = new ArrayList<Double>();
     indeces = new ArrayList<Integer>();
-    start = new ArrayList<Integer>(Collections.nCopies(rows + 1, 0));
+    start = new int[rows + 1];
   }
 
   /**
@@ -129,8 +161,8 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
    */
   @Override
   public double getCell(int row, int column) {
-    int startIndex = start.get(row);
-    int endIndex = start.get(row + 1);
+    int startIndex = start[row];
+    int endIndex = start[row + 1];
     List<Integer> rowIndeces = indeces.subList(startIndex, endIndex);
     int position = rowIndeces.indexOf(column);
     if (position != -1)
@@ -144,13 +176,7 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
    */
   @Override
   public boolean hasCell(int row, int column) {
-    int startIndex = start.get(row);
-    int endIndex = start.get(row + 1);
-    List<Integer> rowIndeces = indeces.subList(startIndex, endIndex);
-    int position = rowIndeces.indexOf(column);
-    if (position != -1)
-      return true;
-    return false;
+    return containedIndeces.contains(row * columns + column);
   }
 
   /**
@@ -169,8 +195,8 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
     SparseVector result = new SparseVector();
     result.setDimension(columns);
     result.init();
-    int startIndex = start.get(row);
-    int endIndex = start.get(row + 1);
+    int startIndex = start[row];
+    int endIndex = start[row + 1];
     for (int i = startIndex; i < endIndex; i++)
       result.setVectorCell(new VectorCell(indeces.get(i), values.get(i)));
     return result;
@@ -178,26 +204,28 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
 
   @Override
   public void compress() {
-    Collections.sort(nonzeroRows);
-    Collections.sort(nonzeroColumns);
     rowIndexMapping = new HashMap<Integer, Integer>();
     colIndexMapping = new HashMap<Integer, Integer>();
+    rowIndexBackMapping = new HashMap<Integer, Integer>();
+    colIndexBackMapping = new HashMap<Integer, Integer>();
     for (int i = 0; i < nonzeroRows.size(); i++) {
       rowIndexMapping.put(nonzeroRows.get(i), i);
       rowIndexBackMapping.put(i, nonzeroRows.get(i));
     }
     for (int i = 0; i < nonzeroColumns.size(); i++) {
       colIndexMapping.put(nonzeroColumns.get(i), i);
-      colIndexMapping.put(i, nonzeroColumns.get(i));
+      colIndexBackMapping.put(i, nonzeroColumns.get(i));
     }
     for (int i = 0; i < indeces.size(); i++)
       indeces.set(i, colIndexMapping.get(indeces.get(i)));
-    ArrayList<Integer> compressedStart = new ArrayList<Integer>(
-        Collections.nCopies(nonzeroRows.size() + 1, 0));
+    int[] compressedStart = new int[nonzeroRows.size() + 1];
+    int currentStart = 0;
     for (int i = 1; i < rows + 1; i++) {
-      int delta = start.get(i) - start.get(i - 1);
-      if (delta > 0)
-        compressedStart.set(i, compressedStart.get(i - 1) + delta);
+      int delta = start[i] - start[i - 1];
+      if (delta > 0) {
+        compressedStart[currentStart + 1] = compressedStart[currentStart] + delta;
+        currentStart++;
+      }
     }
     start = compressedStart;
   }
@@ -222,4 +250,10 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
     return colIndexBackMapping;
   }
 
+  @Override
+  public String toString() {
+    return "CRSMatrix [values=" + values + ", indeces=" + indeces + ", start="
+        + start + "]";
+  }
+ 
 }

@@ -19,6 +19,8 @@ public class CyclicDiagonalMapper extends AbstractTwoDimensionalMapper {
    */
   public CyclicDiagonalMapper(int rows, int columns, int peerCount) {
     init(rows, columns, peerCount);
+    n = (int) Math.floor(Math.sqrt(peerCount));
+    m = peerCount / n;
   }
 
   /**
@@ -26,8 +28,11 @@ public class CyclicDiagonalMapper extends AbstractTwoDimensionalMapper {
    */
   @Override
   public int owner(int row, int column) {
-    int peerColumnIndex = (row % peerCount) % n;
-    int peerRowIndex = (column % peerCount) / m;
+    int peerRowIndex = (row % peerCount) % n;
+    int peerColumnIndex = (column % peerCount) / m;
+    int owner = peerColumnIndex + peerRowIndex * n;
+    if (owner >= peerCount) 
+      return 0;
     return peerColumnIndex + peerRowIndex * n;
   }
 

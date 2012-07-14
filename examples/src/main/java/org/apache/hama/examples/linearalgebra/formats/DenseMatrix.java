@@ -71,7 +71,7 @@ public class DenseMatrix extends AbstractMatrix {
   public DenseMatrix(int rows, int columns) {
     super(rows, columns);
   }
-
+  
   /**
    * {@inheritDoc}
    */
@@ -84,7 +84,7 @@ public class DenseMatrix extends AbstractMatrix {
    * {@inheritDoc}
    */
   @Override
-  public void setMatrixCell(MatrixCell cell) {
+  public synchronized void setMatrixCell(MatrixCell cell) {
     super.setMatrixCell(cell);
     if (!hasCell(cell.getRow(), cell.getColumn()) && cell.getValue() != 0)
       itemsCount++;
@@ -96,6 +96,7 @@ public class DenseMatrix extends AbstractMatrix {
    */
   @Override
   public void init() {
+    super.init();
     data = new double[rows][columns];
     itemsCount = 0;
   }

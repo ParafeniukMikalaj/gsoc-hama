@@ -22,6 +22,13 @@ public abstract class AbstractVector implements Vector {
     this.dimension = dimension;
     init();
   }
+  
+  public void setData(double[] data) {
+    for (int i = 0; i < data.length; i++){
+      if (data[i] != 0)
+       setVectorCell(new VectorCell(i, data[i]));
+    }
+  }
 
   /**
    * {@inheritDoc}

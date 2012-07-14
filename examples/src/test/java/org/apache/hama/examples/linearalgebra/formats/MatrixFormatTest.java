@@ -8,7 +8,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hama.HamaConfiguration;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
 import org.apache.hama.examples.linearalgebra.util.RandomMatrixGenerator;

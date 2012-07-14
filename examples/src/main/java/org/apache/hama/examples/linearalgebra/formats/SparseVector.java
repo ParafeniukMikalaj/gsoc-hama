@@ -1,7 +1,7 @@
 package org.apache.hama.examples.linearalgebra.formats;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -62,9 +62,7 @@ public class SparseVector extends AbstractVector {
 
   public SparseVector(int dimension) {
     super(dimension);
-    locationInited = false;
-    location = new int[dimension];
-    Collections.nCopies(-1, location);
+    init();
   }
 
   /**
@@ -79,17 +77,22 @@ public class SparseVector extends AbstractVector {
    * {@inheritDoc}
    */
   @Override
-  public void setVectorCell(VectorCell cell) {
+  public synchronized void setVectorCell(VectorCell cell) {
     int position = cell.getIndex();
     double value = cell.getValue();
     int index = indeces.indexOf(position);
     if (index != -1) {
       values.remove(index);
       indeces.remove(index);
+    } else {
+      locationInited = false;      
     }
-    indeces.add(index, position);
-    values.add(index, value);
-    locationInited = false;
+    try {
+    indeces.add(position);
+    } catch (ArrayIndexOutOfBoundsException e) {
+      e.printStackTrace();
+    }
+    values.add(value);
   }
 
   /**
@@ -98,7 +101,7 @@ public class SparseVector extends AbstractVector {
   @SuppressWarnings("unused")
   private void initLocation() {
     if (locationInited)
-      Collections.nCopies(-1, location);
+      Arrays.fill(location, -1);
     for (int i = 0; i < indeces.size(); i++)
       location[indeces.get(i)] = i;
   }
@@ -108,6 +111,9 @@ public class SparseVector extends AbstractVector {
    */
   @Override
   public void init() {
+    locationInited = false;
+    location = new int[dimension];
+    Arrays.fill(location, -1);
     values = new ArrayList<Double>();
     indeces = new ArrayList<Integer>();
   }
@@ -140,5 +146,10 @@ public class SparseVector extends AbstractVector {
   public int getItemsCount() {
     return values.size();
   }
+
+  @Override
+  public String toString() {
+    return "SparseVector [values=" + values + ", indeces=" + indeces + "]";
+  } 
 
 }
