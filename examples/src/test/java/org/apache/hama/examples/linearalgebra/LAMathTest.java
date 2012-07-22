@@ -6,7 +6,6 @@ import java.util.Iterator;
 
 import org.apache.hama.HamaConfiguration;
 import org.apache.hama.examples.linearalgebra.formats.CRSMatrix;
-import org.apache.hama.examples.linearalgebra.formats.DenseVector;
 import org.apache.hama.examples.linearalgebra.formats.Matrix;
 import org.apache.hama.examples.linearalgebra.formats.Vector;
 import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
@@ -25,7 +24,7 @@ public class LAMathTest {
    *  [0 2 3 0]      [6]    [24]
    *  [3 0 0 5]      [1]    [11]
    */
-  //@Test
+  /*@Test
   public void testSpMVBasic() {
     try {
       CRSMatrix matrix = new CRSMatrix(4, 4);
@@ -79,7 +78,7 @@ public class LAMathTest {
         vector.setVectorCell(new VectorCell(cell.getColumn(), cell.getValue()));
       }
       LAMath math = new LAMath();
-      LAMath.setRequestedBspTasksCount(20);
+      LAMath.setRequestedBspTasksCount(4);
       Vector v = math.multiply(matrix, vector);
       Log.debug("Answer is " + v.toString());
     } catch (Exception e) {
@@ -88,7 +87,7 @@ public class LAMathTest {
     }
   }
   
-  //@Test
+  @Test
   public void testSpMVLarge() {
     try {
       int size = 100;
@@ -117,5 +116,5 @@ public class LAMathTest {
       e.printStackTrace();
       fail(e.getLocalizedMessage());
     }
-  }
+  }*/
 }

@@ -13,7 +13,7 @@ import org.apache.hama.examples.linearalgebra.structures.MatrixCell;
  * Base implementation of {@link Matrix }, which implements {@link Writable}
  * interface. Also contains set of useful common methods like counting sparsity.
  */
-public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
+public abstract class AbstractMatrix implements Matrix {
 
   protected int rows, columns;
   protected List<Integer> nonzeroRows, nonzeroColumns;
@@ -96,12 +96,10 @@ public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
       nonzeroColumns.add(column);
   }
 
-  @Override
   public List<Integer> getNonZeroRows() {
     return nonzeroRows;
   }
 
-  @Override
   public List<Integer> getNonZeroColumns() {
     System.out.println("Returning columns");
     
@@ -124,12 +122,8 @@ public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
     out.writeInt(getColumns());
     if (writeSparse) {
       Iterator<MatrixCell> iterator = this.getDataIterator();
-      while (iterator.hasNext()) {
-        MatrixCell cell = iterator.next();
-        out.writeInt(cell.getRow());
-        out.writeInt(cell.getColumn());
-        out.writeDouble(cell.getValue());
-      }
+      while (iterator.hasNext())
+        iterator.next().write(out);
     } else {
       for (int i = 0; i < rows; i++)
         for (int j = 0; i < columns; j++)
@@ -148,10 +142,8 @@ public abstract class AbstractMatrix implements Matrix, SpMVMatrix {
     init();
     if (readSparse) {
       for (int i = 0; i < itemsCount; i++) {
-        int cellRow = in.readInt();
-        int cellColumn = in.readInt();
-        double cellValue = in.readDouble();
-        MatrixCell cell = new MatrixCell(cellRow, cellColumn, cellValue);
+        MatrixCell cell = new MatrixCell();
+        cell.readFields(in);
         setMatrixCell(cell);
       }
     } else {

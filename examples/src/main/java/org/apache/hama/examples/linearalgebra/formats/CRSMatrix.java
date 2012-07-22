@@ -1,7 +1,6 @@
 package org.apache.hama.examples.linearalgebra.formats;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -16,8 +15,7 @@ import org.apache.hama.examples.linearalgebra.structures.VectorCell;
  * implementation of MatrixFormat. Web page with explanation of format will be
  * created later.
  */
-public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
-    ContractibleMatrix {
+public class CRSMatrix extends AbstractMatrix {
 
   private List<Double> values;
   private List<Integer> indeces;
@@ -190,7 +188,6 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
   /**
    * {@inheritDoc}
    */
-  @Override
   public SparseVector getRow(int row) {
     SparseVector result = new SparseVector();
     result.setDimension(columns);
@@ -202,7 +199,6 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
     return result;
   }
 
-  @Override
   public void compress() {
     rowIndexMapping = new HashMap<Integer, Integer>();
     colIndexMapping = new HashMap<Integer, Integer>();
@@ -230,27 +226,22 @@ public class CRSMatrix extends AbstractMatrix implements RowWiseMatrix,
     start = compressedStart;
   }
 
-  @Override
   public HashMap<Integer, Integer> getRowMapping() {
     return rowIndexMapping;
   }
 
-  @Override
   public HashMap<Integer, Integer> getColumnMapping() {
     return colIndexMapping;
   }
 
-  @Override
   public HashMap<Integer, Integer> getBackRowMapping() {
     return rowIndexBackMapping;
   }
 
-  @Override
   public HashMap<Integer, Integer> getBackColumnMapping() {
     return colIndexBackMapping;
   }
 
-  @Override
   public String toString() {
     return "CRSMatrix [values=" + values + ", indeces=" + indeces + ", start="
         + start + "]";
