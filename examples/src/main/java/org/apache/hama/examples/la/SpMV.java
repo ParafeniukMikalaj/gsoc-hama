@@ -3,18 +3,16 @@ package org.apache.hama.examples.la;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.SequenceFile;
 import org.apache.hama.HamaConfiguration;
 import org.apache.hama.bsp.BSP;
 import org.apache.hama.bsp.BSPJob;
 import org.apache.hama.bsp.BSPJobClient;
 import org.apache.hama.bsp.BSPPeer;
 import org.apache.hama.bsp.ClusterStatus;
+import org.apache.hama.bsp.Counters.Counter;
 import org.apache.hama.bsp.FileOutputFormat;
 import org.apache.hama.bsp.SequenceFileInputFormat;
 import org.apache.hama.bsp.SequenceFileOutputFormat;
@@ -26,49 +24,65 @@ public class SpMV {
 
   private static HamaConfiguration conf;
   private static final String outputPathString = "spmv.outputpath";
+  private static final String resultPathString = "spmv.resultpath";  
   private static final String inputMatrixPathString = "spmv.inputmatrixpath";
   private static final String inputVectorPathString = "spmv.inputvectorpath";
   private static String requestedBspTasksString = "bsptask.count";
   private static final String spmvSuffix = "/spmv/";
+  private static final String intermediate = "/part";
+  
+  private static Counter rowCounter;
 
-  public static HamaConfiguration getConfiguration() {
+  public static HamaConfiguration getConf(){
+    if (conf==null)
+      conf = new HamaConfiguration();
     return conf;
   }
-
+  
   public static void setConfiguration(HamaConfiguration configuration) {
     conf = configuration;
   }
 
   public static String getOutputPath() {
-    return conf.get(outputPathString, null);
+    return getConf().get(outputPathString, null);
   }
 
   public static void setOutputPath(String outputPath) {
-    conf.set(outputPathString, outputPath);
+    Path path = new Path(outputPath);
+    path = path.suffix(intermediate);
+    getConf().set(outputPathString, path.toString());
+  }
+  
+  public static String getResultPath() {
+    return getConf().get(resultPathString, null);
+  }
+
+  private static void setResultPath(String resultPath) {
+    getConf().set(resultPathString, resultPath);
   }
 
   public static String getInputMatrixPath() {
-    return conf.get(inputMatrixPathString, null);
+    return getConf().get(inputMatrixPathString, null);
   }
 
   public static void setInputMatrixPath(String inputPath) {
-    conf.set(inputMatrixPathString, inputPath);
+    getConf().set(inputMatrixPathString, inputPath);
   }
 
   public static String getInputVectorPath() {
-    return conf.get(inputVectorPathString, null);
+    return getConf().get(inputVectorPathString, null);
   }
 
   public static void setInputVectorPath(String inputPath) {
-    conf.set(inputVectorPathString, inputPath);
+    getConf().set(inputVectorPathString, inputPath);
   }
 
   public static int getRequestedBspTasksCount() {
-    return conf.getInt(requestedBspTasksString, -1);
+    return getConf().getInt(requestedBspTasksString, -1);
   }
 
   public static void setRequestedBspTasksCount(int requestedBspTasksCount) {
-    conf.setInt(requestedBspTasksString, requestedBspTasksCount);
+    getConf().setInt(requestedBspTasksString, requestedBspTasksCount);
   }
 
   private static String generateOutPath() {
@@ -183,8 +197,11 @@ public class SpMV {
 
   private static void startTask() throws IOException, InterruptedException,
       ClassNotFoundException {
-    if (getConfiguration() == null)
+    if (getConf() == null)
       setConfiguration(new HamaConfiguration());
+    rowCounter = new Counter(){
+      
+    };
     BSPJob bsp = new BSPJob(conf, SpMV.class);
     bsp.setJobName("Sparse matrix vector multiplication");
     bsp.setBspClass(SpMVExecutor.class);
@@ -212,10 +229,20 @@ public class SpMV {
     if (bsp.waitForCompletion(true)) {
       System.out.println("Job Finished in "
           + (double) (System.currentTimeMillis() - startTime) / 1000.0
-          + " seconds");
+          + " seconds.");
+      convertToDenseVector();
+      System.out.println("Result is in "+getResultPath());
     } else {
-      setOutputPath(null);
+      setResultPath(null);
     }
+  }
+  
+
+  private static void convertToDenseVector() throws IOException{
+    WritableUtil util = new WritableUtil();
+    int size = (int) rowCounter.getValue();
+    String resultPath = util.convertSpMVOutputToDenseVector(getOutputPath(), getConf(), size);
+    setResultPath(resultPath);
   }
 
   /**
@@ -224,43 +251,41 @@ public class SpMV {
    */
   private static class SpMVExecutor
       extends
-      BSP<IntWritable, MatrixRowWritable, IntWritable, DoubleWritable, ByteMessage> {
-    private MatrixRowWritable v;
-   
+      BSP<IntWritable, SparseVectorWritable, IntWritable, DoubleWritable, ByteMessage> {
+    private DenseVectorWritable v;
 
     @Override
     public void setup(
-        BSPPeer<IntWritable, MatrixRowWritable, IntWritable, DoubleWritable, ByteMessage> peer)
+        BSPPeer<IntWritable, SparseVectorWritable, IntWritable, DoubleWritable, ByteMessage> peer)
         throws IOException, SyncException, InterruptedException {
-      //reading input vector, which represented as matrix row
-      FileSystem fs = FileSystem.get(peer.getConfiguration());
-      SequenceFile.Reader reader = null;
-      Path inputVector = new Path(getInputVectorPath());
-      reader = new SequenceFile.Reader(fs, inputVector, peer.getConfiguration());
-      MatrixRowWritable value = new MatrixRowWritable();
-      //we are not interested in row index. it doesn't has meaning for vector.
-      NullWritable key = NullWritable.get();
-      reader.next(key, value);
-      v = value;
+      // reading input vector, which represented as matrix row
+      WritableUtil util = new WritableUtil();
+      v = new DenseVectorWritable();
+      util.readFromFile(getInputVectorPath(), v, conf);
     }
 
     @Override
     public void bsp(
-        BSPPeer<IntWritable, MatrixRowWritable, IntWritable, DoubleWritable, ByteMessage> peer)
+        BSPPeer<IntWritable, SparseVectorWritable, IntWritable, DoubleWritable, ByteMessage> peer)
         throws IOException, SyncException, InterruptedException {
-      KeyValuePair<IntWritable, MatrixRowWritable> row = null;
-      List<Double> vValues = v.getValues();
+      KeyValuePair<IntWritable, SparseVectorWritable> row = null;
       while ((row = peer.readNext()) != null) {
+        // it will be needed in conversion of output to result vector
+        rowCounter.increment(1L);
         int key = row.getKey().get();
         int sum = 0;
-        MatrixRowWritable matrixRowWritable = row.getValue();
-        List<Integer> mIndeces = matrixRowWritable.getIndeces();
-        List<Double> mValues = matrixRowWritable.getValues();
-        for(int i = 0; i < mIndeces.size(); i++)
-          sum+= vValues.get(mIndeces.get(i))*mValues.get(i);
+        SparseVectorWritable mRow = row.getValue();
+        if (v.getSize() != mRow.getSize())
+          throw new RuntimeException("Matrix row with index = " + key
+              + " is not consistent with input vector. Row size = "
+              + mRow.getSize() + " vector size = " + v.getSize());
+        List<Integer> mIndeces = mRow.getIndeces();
+        List<Double> mValues = mRow.getValues();
+        for (int i = 0; i < mIndeces.size(); i++)
+          sum += v.get(mIndeces.get(i)) * mValues.get(i);
         peer.write(new IntWritable(key), new DoubleWritable(sum));
       }
-
+      peer.sync();
     }
 
   }

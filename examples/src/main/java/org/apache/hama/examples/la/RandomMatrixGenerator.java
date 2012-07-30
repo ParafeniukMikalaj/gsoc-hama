@@ -13,6 +13,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hama.HamaConfiguration;
 import org.apache.hama.bsp.BSP;
 import org.apache.hama.bsp.BSPJob;
@@ -32,10 +33,10 @@ import org.apache.hama.bsp.sync.SyncException;
 public class RandomMatrixGenerator {
   private static Path TMP_OUTPUT = new Path("/tmp/matrix-gen-"
       + System.currentTimeMillis());
-  
-  private static enum totalCounter {
-    TOTAL_COUNT
-  }
+
+  // private static enum totalCounter {
+  // TOTAL_COUNT
+  // }
 
   private static HamaConfiguration conf;
 
@@ -48,7 +49,9 @@ public class RandomMatrixGenerator {
   public static String columnsString = "randomgenerator.columns";
 
   public static String outputString = "randomgenerator.output";
-  
+
+  private static Counter totalCounter;
+
   public static boolean configurationNull() {
     return conf == null;
   }
@@ -95,6 +98,10 @@ public class RandomMatrixGenerator {
 
   public static void setOutputPath(String outputPath) {
     conf.set(outputString, outputPath);
+  }
+
+  public static int getGeneratedCount() {
+    return (int) totalCounter.getValue();
   }
 
   /**
@@ -255,6 +262,9 @@ public class RandomMatrixGenerator {
 
   private static void startTask() throws IOException, InterruptedException,
       ClassNotFoundException {
+    totalCounter = new Counter() {
+
+    };
     // conf is already not null because it is inited in main method.
     BSPJob bsp = new BSPJob(conf, RandomMatrixGenerator.class);
     bsp.setJobName("Random Matrix Generator");
@@ -267,7 +277,7 @@ public class RandomMatrixGenerator {
     bsp.setInputFormat(NullInputFormat.class);
     bsp.setOutputFormat(SequenceFileOutputFormat.class);
     bsp.setOutputKeyClass(IntWritable.class);
-    bsp.setOutputValueClass(MatrixRowWritable.class);
+    bsp.setOutputValueClass(SparseVectorWritable.class);
     String pathString = getOutputPath();
     Path path = TMP_OUTPUT;
     if (pathString != null)
@@ -290,7 +300,7 @@ public class RandomMatrixGenerator {
     if (bsp.waitForCompletion(true)) {
       System.out.println("Job Finished in "
           + (double) (System.currentTimeMillis() - startTime) / 1000.0
-          + " seconds. Output is in " + getOutputPath().toString());        
+          + " seconds. Output is in " + getOutputPath().toString());
     }
 
   }
@@ -302,7 +312,7 @@ public class RandomMatrixGenerator {
    */
   public static class MyGenerator
       extends
-      BSP<NullWritable, NullWritable, IntWritable, MatrixRowWritable, BytesWritable> {
+      BSP<NullWritable, NullWritable, IntWritable, SparseVectorWritable, BytesWritable> {
     public static final Log LOG = LogFactory.getLog(MyGenerator.class);
 
     // Some shared fields
@@ -317,7 +327,7 @@ public class RandomMatrixGenerator {
 
     @Override
     public void setup(
-        BSPPeer<NullWritable, NullWritable, IntWritable, MatrixRowWritable, BytesWritable> peer)
+        BSPPeer<NullWritable, NullWritable, IntWritable, SparseVectorWritable, BytesWritable> peer)
         throws IOException {
       sparsity = getSparsity();
       rows = getRows();
@@ -341,7 +351,7 @@ public class RandomMatrixGenerator {
      */
     @Override
     public void bsp(
-        BSPPeer<NullWritable, NullWritable, IntWritable, MatrixRowWritable, BytesWritable> peer)
+        BSPPeer<NullWritable, NullWritable, IntWritable, SparseVectorWritable, BytesWritable> peer)
         throws IOException, SyncException, InterruptedException {
 
       List<String> peerNamesList = Arrays.asList(peer.getAllPeerNames());
@@ -356,35 +366,41 @@ public class RandomMatrixGenerator {
       }
 
       for (int rowIndex : rowIndeces) {
-        MatrixRowWritable row = new MatrixRowWritable();
+        SparseVectorWritable row = new SparseVectorWritable();
+        row.setSize(columns);
         createdIndeces.clear();
         int needsToGenerate = quotient;
         if (rowIndex < remainder)
           needsToGenerate++;
         if (sparsity < criticalSparsity) {
-          //algorithm for sparse matrices.
+          // algorithm for sparse matrices.
           while (createdIndeces.size() < needsToGenerate) {
             int index = (int) (rand.nextDouble() * columns);
             if (!createdIndeces.contains(index)) {
-              peer.getCounter(totalCounter.TOTAL_COUNT).increment(1L);
+              totalCounter.increment(1L);
               double value = rand.nextDouble();
               row.addCell(index, value);
               createdIndeces.add(index);
             }
           }
         } else {
-          //algorithm for dense matrices
+          // algorithm for dense matrices
           for (int i = 0; i < columns; i++)
-            if (rand.nextDouble() < sparsity){
-              peer.getCounter(totalCounter.TOTAL_COUNT).increment(1L);
+            if (rand.nextDouble() < sparsity) {
+              totalCounter.increment(1L);
               double value = rand.nextDouble();
               row.addCell(i, value);
             }
         }
-        if (row.size() > 0)
-          peer.write(new IntWritable(rowIndex), row);
+        /*
+         * Maybe some optimization can be performed here in case of very sparse
+         * matrices with empty rows. But I am confused: how to store number of
+         * non-zero rows with saving partitioning by rows in SpMV.
+         */
+        // if (row.getSize() > 0)
+        peer.write(new IntWritable(rowIndex), row);
       }
     }
-  } 
+  }
 
 }

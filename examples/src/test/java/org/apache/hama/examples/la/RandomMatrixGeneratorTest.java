@@ -2,9 +2,44 @@ package org.apache.hama.examples.la;
 
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hama.HamaConfiguration;
 import org.junit.Test;
 
 public class RandomMatrixGeneratorTest {
+  
+  private class MatrixReader {
+    private String pathString;
+    public MatrixReader(String pathString) {
+      this.pathString = pathString;
+    }
+    
+    public void read() throws IOException{
+      HamaConfiguration conf = new HamaConfiguration();
+      Path dir = new Path(pathString);
+      FileSystem fs = FileSystem.get(conf);
+      FileStatus[] stats = fs.listStatus(dir); 
+      for(FileStatus stat : stats) 
+      { 
+          String filePath = stat.getPath().toUri().getPath(); // gives directory name 
+          SequenceFile.Reader reader = new SequenceFile.Reader(fs, new Path(filePath), conf);
+          IntWritable key = new IntWritable();
+          SparseVectorWritable value = new SparseVectorWritable();
+          while (reader.next(key, value)) {
+            System.out.print(key.toString());
+            System.out.println(value.toString());
+          }
+      } 
+      
+    }
+  }
+  
   //@Test
   public void testRandomMatrixGeneratorEmptyArgs() {
     try {
@@ -52,13 +87,17 @@ public class RandomMatrixGeneratorTest {
   public void testRandomMatrixGeneratorSmallSparse() {
     try {
       RandomMatrixGenerator.setConfiguration(null);
-      RandomMatrixGenerator.main(new String[]{"-c=4", "-r=4", "-s=0.1", "-n=4"});
+      RandomMatrixGenerator.main(new String[]{"-c=5", "-r=5", "-s=0.3", "-n=4"});
+      System.out.println("Generated count = " + RandomMatrixGenerator.getGeneratedCount());
+      String outputPath = RandomMatrixGenerator.getOutputPath();
+      MatrixReader reader = new MatrixReader(outputPath);
+      reader.read();
     } catch (Exception e) {
       fail(e.getLocalizedMessage());
     }
   }
   
-  @Test
+  //@Test
   public void testRandomMatrixGeneratorLargeSparse() {
     try {
       RandomMatrixGenerator.setConfiguration(null);
@@ -68,7 +107,7 @@ public class RandomMatrixGeneratorTest {
     }
   }
   
-  @Test
+  //@Test
   public void testRandomMatrixGeneratorSmallDense() {
     try {
       RandomMatrixGenerator.setConfiguration(null);
@@ -78,7 +117,7 @@ public class RandomMatrixGeneratorTest {
     }
   }
   
-  @Test
+  //@Test
   public void testRandomMatrixGeneratorLargeDense() {
     try {
       RandomMatrixGenerator.setConfiguration(null);
