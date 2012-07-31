@@ -28,15 +28,12 @@ import org.apache.hama.bsp.sync.SyncException;
 /**
  * This class can generate random matrix. It uses {@link MyGenerator}. You can
  * specify different options in command line. {@link parseArgs} for more info.
- * Option for symmetric matrices is not supported yet.
+ * Option for symmetric matrices is not supported yet. Currently it implements
+ * row-wise logic, which is usable for {@link SpMV}
  */
 public class RandomMatrixGenerator {
   private static Path TMP_OUTPUT = new Path("/tmp/matrix-gen-"
       + System.currentTimeMillis());
-
-  // private static enum totalCounter {
-  // TOTAL_COUNT
-  // }
 
   private static HamaConfiguration conf;
 
@@ -50,6 +47,11 @@ public class RandomMatrixGenerator {
 
   public static String outputString = "randomgenerator.output";
 
+  /*
+   * IMPORTANT NOTE: I tried to use enums for counters, but I couldn't access
+   * them after bsp computations. So I preferred static counter. It sould be
+   * checked.
+   */
   private static Counter totalCounter;
 
   public static boolean configurationNull() {
@@ -207,6 +209,12 @@ public class RandomMatrixGenerator {
     }
   }
 
+  /**
+   * Main function which gives an ability to start generator with command line.
+   * 
+   * @param args
+   *          command line
+   */
   public static void main(String[] args) throws IOException,
       InterruptedException, ClassNotFoundException {
     // BSP job configuration
@@ -218,8 +226,8 @@ public class RandomMatrixGenerator {
   }
 
   /**
-   * Alternative way to start RandomMatrixGenerator. requestedBstTasksCount and
-   * outputPath parameters are optional.
+   * Alternative way to start generator. requestedBstTasksCount and outputPath
+   * parameters are optional.
    */
   public static void main(int rows, int columns, float sparsity,
       Integer requestedBspTasksCount, String outputPath) throws IOException,
@@ -260,12 +268,14 @@ public class RandomMatrixGenerator {
     startTask();
   }
 
+  /**
+   * Method which actually starts generator.
+   */
   private static void startTask() throws IOException, InterruptedException,
       ClassNotFoundException {
     totalCounter = new Counter() {
 
     };
-    // conf is already not null because it is inited in main method.
     BSPJob bsp = new BSPJob(conf, RandomMatrixGenerator.class);
     bsp.setJobName("Random Matrix Generator");
     /*
@@ -292,7 +302,6 @@ public class RandomMatrixGenerator {
     if (RandomMatrixGenerator.getRequestedBspTasksCount() != -1) {
       bsp.setNumBspTask(RandomMatrixGenerator.getRequestedBspTasksCount());
     } else {
-      // Set to maximum
       bsp.setNumBspTask(cluster.getMaxTasks());
     }
 
@@ -306,22 +315,19 @@ public class RandomMatrixGenerator {
   }
 
   /**
-   * This class uses cyclic matrix distribution. Can generate random matrix. In
-   * case of sparsity > 0.5 The number of generated items can be not exact. This
-   * was made to achieve at least linear performance in case of high sparsity.
+   * Class which currently implements row-wise logic. In case of sparsity > 0.5
+   * can get not exact number of generated items, as expected. But it was made
+   * for efficiency.
    */
   public static class MyGenerator
       extends
       BSP<NullWritable, NullWritable, IntWritable, SparseVectorWritable, BytesWritable> {
     public static final Log LOG = LogFactory.getLog(MyGenerator.class);
 
-    // Some shared fields
-
     private static int rows, columns;
     private static float sparsity;
     private static int remainder, quotient, needed;
     private static int peerCount = 1;
-    // This array is used to store final output
     private static Random rand;
     private static double criticalSparsity = 0.5;
 
@@ -341,13 +347,10 @@ public class RandomMatrixGenerator {
     }
 
     /**
-     * This algorithm consists of few supersteps. 1) Every peer count limit of
-     * it's logical index, generates matrix items, sends number of generated
-     * items to masterTask. 2) masterTasks analyzes the number of generated
-     * items by each peer, counts offset for writing into result array for each
-     * peer, sends offset. 3) Each peer writes it's data from received offset.
-     * NOTE: in case of sparsity > 0.5 number of generated items can differ from
-     * expected count.
+     * The algorithm is as follows: each peer counts, how many items it needs to
+     * generate, after that it uses algorithms for sparse matrices if sparsity <
+     * 0.5 and algorithm for dense matrices otherwise. NOTE: in case of sparsity
+     * > 0.5 number of generated items can differ from expected count.
      */
     @Override
     public void bsp(
@@ -393,9 +396,9 @@ public class RandomMatrixGenerator {
             }
         }
         /*
-         * Maybe some optimization can be performed here in case of very sparse
-         * matrices with empty rows. But I am confused: how to store number of
-         * non-zero rows with saving partitioning by rows in SpMV.
+         * IMPORTANT: Maybe some optimization can be performed here in case of
+         * very sparse matrices with empty rows. But I am confused: how to store
+         * number of non-zero rows with saving partitioning by rows in {@link SpMV}.
          */
         // if (row.getSize() > 0)
         peer.write(new IntWritable(rowIndex), row);

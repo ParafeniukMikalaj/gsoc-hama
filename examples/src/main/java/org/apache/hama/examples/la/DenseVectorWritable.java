@@ -4,66 +4,37 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
 
-public class DenseVectorWritable implements VectorWritable{
+import org.apache.hadoop.io.Writable;
+
+/**
+ * This class represents dense vector. It will improve memory consumption up to
+ * two times in comparison to {@link SparseVectorWritable} in case of vectors
+ * which sparsity is close to 1. Internally represents vector values as array.
+ * Can be used in {@link SpMV} for representation of input and output vector.
+ */
+public class DenseVectorWritable implements Writable {
 
   private double values[];
-  
-  private class DenseVectorIterator implements Iterator<VectorCell>{
-    private int index;
-    
-    public DenseVectorIterator(){
-      index = 0;
-    }
-    
-    @Override
-    public boolean hasNext() {
-      while (index < getSize() && values[index] != 0)
-        index++;
-      return index < getSize();
-    }
 
-    @Override
-    public VectorCell next() {
-      if (!hasNext())
-        throw new IllegalStateException("DenseVector iterator has no more items");
-      VectorCell cell = new VectorCell(index, values[index]);
-      index++;
-      return cell;
-    }
+  public DenseVectorWritable() {
 
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException("DenseVectorIterator doesn't permit's item deletion");
-    }
-    
-  }  
-  
-  public DenseVectorWritable(){
-    
   }
 
-  @Override
-  public Iterator<VectorCell> getIterator() {
-    return new DenseVectorIterator();
-  }
-  
-  public int getSize(){
+  public int getSize() {
     return values.length;
   }
-  
-  public void setSize(int size){
+
+  public void setSize(int size) {
     values = new double[size];
   }
-  
+
   public double get(int index) {
     return values[index];
-  }  
+  }
 
-  @Override
   public void addCell(int index, double value) {
-    values[index] = value;    
+    values[index] = value;
   }
 
   @Override
@@ -91,6 +62,6 @@ public class DenseVectorWritable implements VectorWritable{
   @Override
   public String toString() {
     return "values=" + Arrays.toString(values);
-  } 
+  }
 
 }

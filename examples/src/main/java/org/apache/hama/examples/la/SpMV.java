@@ -20,25 +20,32 @@ import org.apache.hama.bsp.messages.ByteMessage;
 import org.apache.hama.bsp.sync.SyncException;
 import org.apache.hama.util.KeyValuePair;
 
+/**
+ * Sparse matrix vector multiplication. Currently it uses row-wise access.
+ * Assumptions: 1) each peer should have copy of input vector for efficient
+ * operations. 2) row-wise implementation is good because we don't need to care
+ * about communication 3) the main way to improve performance - create custom
+ * Partitioner
+ */
 public class SpMV {
 
   private static HamaConfiguration conf;
   private static final String outputPathString = "spmv.outputpath";
-  private static final String resultPathString = "spmv.resultpath";  
+  private static final String resultPathString = "spmv.resultpath";
   private static final String inputMatrixPathString = "spmv.inputmatrixpath";
   private static final String inputVectorPathString = "spmv.inputvectorpath";
   private static String requestedBspTasksString = "bsptask.count";
   private static final String spmvSuffix = "/spmv/";
   private static final String intermediate = "/part";
-  
+
   private static Counter rowCounter;
 
-  public static HamaConfiguration getConf(){
-    if (conf==null)
+  public static HamaConfiguration getConf() {
+    if (conf == null)
       conf = new HamaConfiguration();
     return conf;
   }
-  
+
   public static void setConfiguration(HamaConfiguration configuration) {
     conf = configuration;
   }
@@ -52,7 +59,7 @@ public class SpMV {
     path = path.suffix(intermediate);
     getConf().set(outputPathString, path.toString());
   }
-  
+
   public static String getResultPath() {
     return getConf().get(resultPathString, null);
   }
@@ -99,8 +106,6 @@ public class SpMV {
    * pairs. Possible options: -im : path for input file matrix; -iv : path for
    * input file vector; -o : optional path for output file for dense vector; -n
    * : optional requested number of bsp peers.
-   * 
-   * @param args
    */
   private static void parseArgs(String[] args) {
     try {
@@ -160,9 +165,7 @@ public class SpMV {
   }
 
   /**
-   * {@code output} and {@code requestedBspTaskCount} parameters can be null.
-   * {@code output} can be generated and {@code requestedBspTaskCount} will be
-   * setted to maximum.
+   * This method gives opportunity to start SpMV with command line.
    */
   public static void main(String[] args) throws IOException,
       InterruptedException, ClassNotFoundException {
@@ -171,9 +174,9 @@ public class SpMV {
   }
 
   /**
-   * {@code output} and {@code requestedBspTaskCount} parameters can be null.
-   * {@code output} can be generated and {@code requestedBspTaskCount} will be
-   * setted to maximum.
+   * Alternative way to start SpMV task. {@code output} and {@code output} and
+   * {@code requestedBspTaskCount} parameters can be null. {@code output} can be
+   * generated and {@code requestedBspTaskCount} will be setted to maximum.
    */
   public static void main(Path inputMatrix, Path inputVector, Path output,
       Integer requestedBspTaskCount) throws IOException, InterruptedException,
@@ -195,16 +198,23 @@ public class SpMV {
     startTask();
   }
 
+  /**
+   * Method which actually starts SpMV.
+   */
   private static void startTask() throws IOException, InterruptedException,
       ClassNotFoundException {
     if (getConf() == null)
       setConfiguration(new HamaConfiguration());
-    rowCounter = new Counter(){
-      
+    rowCounter = new Counter() {
+
     };
     BSPJob bsp = new BSPJob(conf, SpMV.class);
     bsp.setJobName("Sparse matrix vector multiplication");
     bsp.setBspClass(SpMVExecutor.class);
+    /*
+     * Input matrix is presented as pairs of integer and {@ link
+     * SparseVectorWritable}. Output is pairs of integer and double
+     */
     bsp.setInputFormat(SequenceFileInputFormat.class);
     bsp.setOutputKeyClass(IntWritable.class);
     bsp.setOutputValueClass(DoubleWritable.class);
@@ -231,29 +241,35 @@ public class SpMV {
           + (double) (System.currentTimeMillis() - startTime) / 1000.0
           + " seconds.");
       convertToDenseVector();
-      System.out.println("Result is in "+getResultPath());
+      System.out.println("Result is in " + getResultPath());
     } else {
       setResultPath(null);
     }
   }
-  
 
-  private static void convertToDenseVector() throws IOException{
+  /**
+   * IMPORTANT: This can be a bottle neck. Problem can be here{@core
+   * WritableUtil.convertSpMVOutputToDenseVector()}
+   */
+  private static void convertToDenseVector() throws IOException {
     WritableUtil util = new WritableUtil();
     int size = (int) rowCounter.getValue();
-    String resultPath = util.convertSpMVOutputToDenseVector(getOutputPath(), getConf(), size);
+    String resultPath = util.convertSpMVOutputToDenseVector(getOutputPath(),
+        getConf(), size);
     setResultPath(resultPath);
   }
 
   /**
-   * This class performs sparse matrix vector multiplication. u = m * v. m -
-   * input matrix, u - partial sum, v - input vector.
+   * This class performs sparse matrix vector multiplication. u = m * v.
    */
   private static class SpMVExecutor
       extends
       BSP<IntWritable, SparseVectorWritable, IntWritable, DoubleWritable, ByteMessage> {
     private DenseVectorWritable v;
 
+    /**
+     * Each peer reads input dense vector.
+     */
     @Override
     public void setup(
         BSPPeer<IntWritable, SparseVectorWritable, IntWritable, DoubleWritable, ByteMessage> peer)
@@ -264,6 +280,9 @@ public class SpMV {
       util.readFromFile(getInputVectorPath(), v, conf);
     }
 
+    /**
+     * Local inner product computation and output.
+     */
     @Override
     public void bsp(
         BSPPeer<IntWritable, SparseVectorWritable, IntWritable, DoubleWritable, ByteMessage> peer)

@@ -6,40 +6,45 @@ import java.io.IOException;
 import java.util.HashMap;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.Writable;
 import org.apache.hama.HamaConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
+/**
+ * This class is test cases for {@link SpMV}. It will contain simple hand
+ * calculated cases, and cases of different matrix and vector sizes given with
+ * help of {@link RandomMatrixGenerator}
+ */
 public class SpMVTest {
   private HamaConfiguration conf;
   private FileSystem fs;
   private String baseDir;
-  
+
   @Before
   public void prepare() throws IOException {
     conf = new HamaConfiguration();
     fs = FileSystem.get(conf);
-    baseDir = fs.getHomeDirectory().toString()+"/spmv";      
+    baseDir = fs.getHomeDirectory().toString() + "/spmv";
   }
-  
+
   /**
-   * Simple test.
-   * multiplying
-   *  [1 0 6 0]      [2]    [38]
-   *  [0 4 0 0]  *   [3] =  [12]
-   *  [0 2 3 0]      [6]    [24]
-   *  [3 0 0 5]      [1]    [11]
+   * Simple test. multiplying 
+   * [1 0 6 0]   [2]    [38] 
+   * [0 4 0 0] * [3] =  [12] 
+   * [0 2 3 0]   [6]    [24] 
+   * [3 0 0 5]   [1]    [11]
    */
   @Test
-  public void simpleSpMVTest(){
+  public void simpleSpMVTest() {
     try {
       HamaConfiguration conf = new HamaConfiguration();
       WritableUtil writableUtil = new WritableUtil();
       String testDir = "/simple/";
       int size = 4;
-      
-      //creating test matrix
-      HashMap<Integer, VectorWritable> inputMatrix = new HashMap<Integer, VectorWritable>();
+
+      // creating test matrix
+      HashMap<Integer, Writable> inputMatrix = new HashMap<Integer, Writable>();
       SparseVectorWritable vector0 = new SparseVectorWritable();
       vector0.setSize(size);
       vector0.addCell(0, 1);
@@ -59,10 +64,10 @@ public class SpMVTest {
       inputMatrix.put(1, vector1);
       inputMatrix.put(2, vector2);
       inputMatrix.put(3, vector3);
-      String matrixPath = baseDir+testDir+"inputMatrix";
+      String matrixPath = baseDir + testDir + "inputMatrix";
       writableUtil.writeMatrix(matrixPath, conf, inputMatrix);
-      
-      HashMap<Integer, VectorWritable> inputVector = new HashMap<Integer, VectorWritable>();
+
+      HashMap<Integer, Writable> inputVector = new HashMap<Integer, Writable>();
       DenseVectorWritable vector = new DenseVectorWritable();
       vector.setSize(size);
       vector.addCell(0, 2);
@@ -70,32 +75,32 @@ public class SpMVTest {
       vector.addCell(2, 6);
       vector.addCell(3, 1);
       inputVector.put(0, vector);
-      String vectorPath = baseDir+testDir+"inputVector";
+      String vectorPath = baseDir + testDir + "inputVector";
       writableUtil.writeMatrix(vectorPath, conf, inputVector);
-      
-      String outputPath = baseDir+testDir;
+
+      String outputPath = baseDir + testDir;
       SpMV.setRequestedBspTasksCount(4);
       SpMV.setOutputPath(outputPath);
       SpMV.setInputMatrixPath(matrixPath);
       SpMV.setInputVectorPath(vectorPath);
       SpMV.main(new String[0]);
-      
+
       String resultPath = SpMV.getResultPath();
       DenseVectorWritable result = new DenseVectorWritable();
       writableUtil.readFromFile(resultPath, result, conf);
-      
-      double expected[] = {38, 12, 24, 11};
+
+      double expected[] = { 38, 12, 24, 11 };
       if (result.getSize() != size)
         throw new Exception("Incorrect size of output vector");
       for (int i = 0; i < result.getSize(); i++)
         if ((result.get(i) - expected[i]) < 0.01)
           expected[i] = 0;
-      
+
       for (int i = 0; i < expected.length; i++)
         if (expected[i] != 0)
-          throw new Exception("Result doesn't meets expectations");      
-      
-    } catch (Exception e){
+          throw new Exception("Result doesn't meets expectations");
+
+    } catch (Exception e) {
       fail(e.getLocalizedMessage());
     }
   }
